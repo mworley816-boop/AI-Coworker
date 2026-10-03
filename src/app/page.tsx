@@ -1,4 +1,4 @@
 import GoalComposer from "@/components/GoalComposer";
 import AuthPanel from "@/components/AuthPanel";
 import WorkspaceSummary from "@/components/WorkspaceSummary";
-export default function Home(){return <main><aside><h2>AI Coworker</h2><nav>Overview<br/>Coworkers<br/>Tasks<br/>Activity<br/>Approvals<br/>Connections<br/>Settings</nav></aside><section><AuthPanel/><header><div><p className="eyebrow">WORKSPACE</p><h1>Your AI coworkers</h1><p>Create workers, assign goals, and review everything they do.</p></div><button>+ New coworker</button></header><WorkspaceSummary/><GoalComposer/></section></main>}
+export default function Home(){return <main><aside><h2>AI Coworker</h2><nav>Overview<br/>Coworkers<br/>Tasks<br/>Activity<br/>Approvals<br/>Connections<br/>Settings</nav></aside><section><AuthPanel/><header><div><p className="eyebrow">WORKSPACE</p><h1>Your AI coworkers</h1><p>Create workers, assign goals, and review everything they do.</p></div><button>+ New coworker</button></header><WorkspaceSummary/><p><a href="/tasks">Browse all tasks →</a></p><GoalComposer/></section></main>}
