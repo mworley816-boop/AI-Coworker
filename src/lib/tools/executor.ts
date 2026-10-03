@@ -1,0 +1,9 @@
+import {authorizeTool} from "./authorize";
+import {createClient} from "@/lib/supabase/client";
+export type ToolExecutionContext={coworkerId:string;runId?:string;approved?:boolean};
+export type ToolExecutionResult={ok:boolean;toolId:string;message:string;data?:Record<string,unknown>};
+export type ToolAdapter={id:string;execute(input:Record<string,unknown>,context:ToolExecutionContext):Promise<ToolExecutionResult>};
+const adapters=new Map<string,ToolAdapter>();
+export function registerToolAdapter(adapter:ToolAdapter){adapters.set(adapter.id,adapter);}
+export async function executeTool(toolId:string,input:Record<string,unknown>,context:ToolExecutionContext){const permission=await authorizeTool(context.coworkerId,toolId,Boolean(context.approved));if(!permission.allowed){await audit(context.runId,"tool.blocked",`${toolId}: ${permission.reason}`,{toolId,reason:permission.reason});return {ok:false,toolId,message:permission.reason};}const adapter=adapters.get(toolId);if(!adapter){await audit(context.runId,"tool.unavailable",`${toolId} is authorized but has no connected adapter.`,{toolId});return {ok:false,toolId,message:"Tool adapter is not connected"};}await audit(context.runId,"tool.started",`${toolId} started.`,{toolId});try{const result=await adapter.execute(input,context);await audit(context.runId,result.ok?"tool.completed":"tool.failed",result.message,{toolId});return result;}catch(error){const message=error instanceof Error?error.message:"Tool execution failed";await audit(context.runId,"tool.failed",message,{toolId});return {ok:false,toolId,message};}}
+async function audit(runId:string|undefined,event_type:string,message:string,metadata:Record<string,unknown>){if(!runId)return;const s=createClient();if(!s)return;await s.from("activity_logs").insert({run_id:runId,event_type,message,metadata});}
