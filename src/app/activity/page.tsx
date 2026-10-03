@@ -1,0 +1,2 @@
+import ActivityFeed from "@/components/ActivityFeed";
+export default function ActivityPage(){return <main className="run-page"><section><a href="/">← Dashboard</a><p className="eyebrow">WORKSPACE</p><h1>Activity</h1><p>A chronological audit trail of Atlas's persisted run activity.</p><ActivityFeed/></section></main>}
