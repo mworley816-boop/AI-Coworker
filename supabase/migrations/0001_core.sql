@@ -9,3 +9,13 @@ create table activity_logs (id bigint generated always as identity primary key, 
 alter table coworkers enable row level security; alter table tasks enable row level security;
 create policy coworkers_owner on coworkers for all using (auth.uid()=user_id) with check (auth.uid()=user_id);
 create policy tasks_owner on tasks for all using (auth.uid()=user_id) with check (auth.uid()=user_id);
+alter table runs enable row level security;
+alter table run_steps enable row level security;
+alter table memories enable row level security;
+alter table approvals enable row level security;
+alter table activity_logs enable row level security;
+create policy runs_owner on runs for all using (exists(select 1 from tasks t where t.id=runs.task_id and t.user_id=auth.uid())) with check (exists(select 1 from tasks t where t.id=runs.task_id and t.user_id=auth.uid()));
+create policy run_steps_owner on run_steps for all using (exists(select 1 from runs r join tasks t on t.id=r.task_id where r.id=run_steps.run_id and t.user_id=auth.uid())) with check (exists(select 1 from runs r join tasks t on t.id=r.task_id where r.id=run_steps.run_id and t.user_id=auth.uid()));
+create policy memories_owner on memories for all using (exists(select 1 from coworkers c where c.id=memories.coworker_id and c.user_id=auth.uid())) with check (exists(select 1 from coworkers c where c.id=memories.coworker_id and c.user_id=auth.uid()));
+create policy approvals_owner on approvals for all using (exists(select 1 from runs r join tasks t on t.id=r.task_id where r.id=approvals.run_id and t.user_id=auth.uid())) with check (exists(select 1 from runs r join tasks t on t.id=r.task_id where r.id=approvals.run_id and t.user_id=auth.uid()));
+create policy activity_logs_owner on activity_logs for all using (exists(select 1 from runs r join tasks t on t.id=r.task_id where r.id=activity_logs.run_id and t.user_id=auth.uid())) with check (exists(select 1 from runs r join tasks t on t.id=r.task_id where r.id=activity_logs.run_id and t.user_id=auth.uid()));
