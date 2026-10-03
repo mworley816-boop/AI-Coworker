@@ -11,3 +11,4 @@ create table if not exists public.coworker_tool_permissions (
 );
 alter table public.coworker_tool_permissions enable row level security;
 create index if not exists coworker_tool_permissions_coworker_idx on public.coworker_tool_permissions(coworker_id);
+create policy "owners manage coworker tool permissions" on public.coworker_tool_permissions for all using (exists(select 1 from public.coworkers c where c.id=coworker_tool_permissions.coworker_id and c.user_id=auth.uid())) with check (exists(select 1 from public.coworkers c where c.id=coworker_tool_permissions.coworker_id and c.user_id=auth.uid()));
