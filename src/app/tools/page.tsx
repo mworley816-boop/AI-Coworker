@@ -1,0 +1,2 @@
+import ToolPermissionsPanel from "@/components/ToolPermissionsPanel";
+export default function ToolsPage(){return <main className="run-page"><section><a href="/">← Dashboard</a><p className="eyebrow">ATLAS</p><h1>Tools & Permissions</h1><p>Choose which capabilities Atlas may use. Write actions remain approval-gated.</p><ToolPermissionsPanel/></section></main>}
