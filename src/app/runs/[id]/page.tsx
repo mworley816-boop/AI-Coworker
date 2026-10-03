@@ -1,0 +1,2 @@
+import RunDetails from "@/components/RunDetails";
+export default async function RunPage({params}:{params:Promise<{id:string}>}){const {id}=await params;return <main className="run-page"><section><a href="/">← Dashboard</a><p className="eyebrow">RUN DETAILS</p><h1>Atlas activity</h1><RunDetails runId={id}/></section></main>}
