@@ -1,0 +1,5 @@
+import {createClient} from "@/lib/supabase/client";
+export type MemoryKind="working"|"project"|"long_term";
+export async function listMemories(coworkerId:string){const s=createClient();if(!s)return [];const {data,error}=await s.from("memories").select("id,coworker_id,kind,content,metadata,created_at").eq("coworker_id",coworkerId).order("created_at",{ascending:false});if(error)throw error;return data??[];}
+export async function addMemory(coworkerId:string,kind:MemoryKind,content:string,metadata:Record<string,unknown>={}){const s=createClient();if(!s)throw new Error("Supabase is not configured");const clean=content.trim();if(!clean)throw new Error("Memory content is required");const {data,error}=await s.from("memories").insert({coworker_id:coworkerId,kind,content:clean,metadata}).select("id").single();if(error)throw error;return data;}
+export async function deleteMemory(id:string){const s=createClient();if(!s)throw new Error("Supabase is not configured");const {error}=await s.from("memories").delete().eq("id",id);if(error)throw error;}
