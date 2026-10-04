@@ -8,7 +8,7 @@ import {emailSendAdapter} from "./adapters/email-send";
 import {calendarWriteAdapter} from "./adapters/calendar-write";
 import {authorizeTool,type SupabaseLike} from "./authorize";
 export type ToolExecutionContext={coworkerId:string;runId?:string;approved?:boolean;supabase:SupabaseLike};
-export type ToolExecutionResult={ok:boolean;toolId:string;message:string;data?:Record<string,unknown>};
+export type ToolExecutionResult={ok:boolean;toolId:string;message:string;data?:Record<string,unknown>;outcome?:"confirmed_failure"|"uncertain"};
 export type ToolAdapter={id:string;execute(input:Record<string,unknown>,context:ToolExecutionContext):Promise<ToolExecutionResult>};
 const adapters=new Map<string,ToolAdapter>();
 adapters.set(webResearchAdapter.id,webResearchAdapter);
