@@ -11,4 +11,4 @@ export const toolRegistry:ToolDefinition[]=[
 {id:"calendar.write",name:"Calendar Write",description:"Create or modify calendar events.",access:"write",requiresApproval:true,enabled:false}
 ];
 export function getTool(id:string){return toolRegistry.find(t=>t.id===id);}
-export function canExecuteTool(id:string,approved=false){const tool=getTool(id);if(!tool||!tool.enabled)return {allowed:false,reason:"Tool is not enabled"};if(tool.requiresApproval&&!approved)return {allowed:false,reason:"Approval is required"};return {allowed:true,tool};}
+export function canExecuteTool(id:string,approved=false){const tool=getTool(id);if(!tool)return {allowed:false,reason:"Unknown tool"};if(tool.requiresApproval&&!approved)return {allowed:false,reason:"Approval is required"};return {allowed:true,tool};}
