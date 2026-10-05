@@ -13,6 +13,7 @@ export async function GET(request:Request){
   const queued=await supabase.from("runs").select("id",{count:"exact",head:true}).eq("status","queued");
   const running=await supabase.from("runs").select("id",{count:"exact",head:true}).eq("status","running");
   const waiting=await supabase.from("runs").select("id",{count:"exact",head:true}).eq("status","waiting_approval");
-  if(queued.error||running.error||waiting.error)return NextResponse.json({ok:false,reason:"Worker queue status could not be loaded"},{status:500});
-  return NextResponse.json({ok:true,queued:queued.count??0,running:running.count??0,waitingApproval:waiting.count??0,time:new Date().toISOString()});
+  const expired=await supabase.from("runs").select("id",{count:"exact",head:true}).not("lease_expires_at","is",null).lte("lease_expires_at",new Date().toISOString());
+  if(queued.error||running.error||waiting.error||expired.error)return NextResponse.json({ok:false,reason:"Worker queue status could not be loaded"},{status:500});
+  return NextResponse.json({ok:true,queued:queued.count??0,running:running.count??0,waitingApproval:waiting.count??0,expiredLeases:expired.count??0,time:new Date().toISOString()});
 }
