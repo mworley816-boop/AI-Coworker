@@ -1,7 +1,9 @@
 "use client";
 import {detectActionKind} from "@/lib/action-kind";
 type Props={goal:string;value:string;onChange:(value:string)=>void};
-function parse(value:string){try{return value.trim()?JSON.parse(value) as Record<string,unknown>:{};}catch{return {};}}\nfunction localToIso(value:string){if(!value)return "";const date=new Date(value);return Number.isNaN(date.getTime())?value:date.toISOString();}\nfunction isoToLocal(value:unknown){if(typeof value!=="string"||!value)return "";const date=new Date(value);if(Number.isNaN(date.getTime()))return value;const offset=date.getTimezoneOffset()*60_000;return new Date(date.getTime()-offset).toISOString().slice(0,16);}
+function parse(value:string){try{return value.trim()?JSON.parse(value) as Record<string,unknown>:{};}catch{return {};}}
+function localToIso(value:string){if(!value)return "";const date=new Date(value);return Number.isNaN(date.getTime())?value:date.toISOString();}
+function isoToLocal(value:unknown){if(typeof value!=="string"||!value)return "";const date=new Date(value);if(Number.isNaN(date.getTime()))return value;const offset=date.getTimezoneOffset()*60_000;return new Date(date.getTime()-offset).toISOString().slice(0,16);}
 export default function ActionDetailsFields({goal,value,onChange}:Props){
   const kind=detectActionKind(goal);if(!kind)return null;const data=parse(value);
   const set=(key:string,next:unknown)=>onChange(JSON.stringify({...data,[key]:next},null,2));
