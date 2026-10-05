@@ -12,7 +12,11 @@ export async function POST(request:Request){
   const authorization=request.headers.get("authorization");
   if(authorization!==`Bearer ${secret}`)return NextResponse.json({ok:false,reason:"Unauthorized"},{status:401});
   const supabase=createClient(url,serviceRoleKey,{auth:{persistSession:false,autoRefreshToken:false}});
+  const requestedBatch=Number(request.headers.get("x-worker-batch-size")??"5");
+  const batchSize=Number.isFinite(requestedBatch)?Math.max(1,Math.min(Math.floor(requestedBatch),20)):5;
   const workerId=`worker:${crypto.randomUUID()}`;
-  const result=await processQueuedRunBatch(supabase,workerId,5);
-  return NextResponse.json(result,{status:result.ok?200:500});
+  const startedAt=Date.now();
+  const result=await processQueuedRunBatch(supabase,workerId,batchSize);
+  const durationMs=Date.now()-startedAt;
+  return NextResponse.json({...result,workerId,batchSize,durationMs},{status:result.ok?200:500});
 }
