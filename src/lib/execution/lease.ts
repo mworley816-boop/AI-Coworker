@@ -13,7 +13,7 @@ export async function claimRunLease(supabase:SupabaseLike,runId:string,owner:str
 
 export async function renewRunLease(supabase:SupabaseLike,runId:string,owner:string,leaseMs=DEFAULT_LEASE_MS){
   const expiresAt=new Date(Date.now()+leaseMs).toISOString();
-  const renewed=await supabase.from("runs").update({lease_expires_at:expiresAt}).eq("id",runId).eq("lease_owner",owner).select("id").maybeSingle();
+  const renewed=await supabase.from("runs").update({lease_expires_at:expiresAt}).eq("id",runId).eq("lease_owner",owner).gt("lease_expires_at",new Date().toISOString()).select("id").maybeSingle();
   return renewed.error||!renewed.data?{ok:false as const}:{ok:true as const,expiresAt};
 }
 
