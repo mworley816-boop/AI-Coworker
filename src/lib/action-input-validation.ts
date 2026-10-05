@@ -19,6 +19,15 @@ export function validateActionInput(toolId:string|undefined,input:Record<string,
     const allowed=new Set(["create_branch","create_file","update_file","create_issue","comment_issue"]);
     if(!text("repository")||!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(String(input.repository)))return {ok:false as const,reason:"GitHub actions require a valid owner/repository"};
     if(!text("action")||!allowed.has(String(input.action)))return {ok:false as const,reason:"GitHub action is not permitted"};
+    const params=input.params&&typeof input.params==="object"&&!Array.isArray(input.params)?input.params as Record<string,unknown>:undefined;
+    const paramText=(key:string)=>typeof params?.[key]==="string"&&String(params[key]).trim().length>0;
+    const action=String(input.action);
+    if(!params)return {ok:false as const,reason:"GitHub action requires parameters"};
+    if(action==="create_issue"&&(!paramText("title")||String(params.title).trim().length>256))return {ok:false as const,reason:"GitHub issue requires a title up to 256 characters"};
+    if(action==="comment_issue"&&(!Number.isInteger(Number(params.issueNumber))||Number(params.issueNumber)<1||!paramText("body")))return {ok:false as const,reason:"GitHub comment requires an issue number and body"};
+    if(action==="create_branch"&&(!paramText("branch")||!paramText("from")))return {ok:false as const,reason:"GitHub branch creation requires branch and source ref"};
+    if((action==="create_file"||action==="update_file")&&(!paramText("path")||!paramText("content")||!paramText("branch")))return {ok:false as const,reason:"GitHub file actions require path, content, and branch"};
+    if(action==="update_file"&&!paramText("sha"))return {ok:false as const,reason:"GitHub file update requires the current file SHA"};
   }
   if(toolId==="database.write"){
     if(input.table!=="memories")return {ok:false as const,reason:"Database actions currently support memories only"};
