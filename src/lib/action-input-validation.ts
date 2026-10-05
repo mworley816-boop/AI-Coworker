@@ -37,7 +37,7 @@ export function validateActionInput(toolId:string|undefined,input:Record<string,
     const values=input.values as Record<string,unknown>;
     if("kind" in values&&!["working","long_term","project"].includes(String(values.kind)))return {ok:false as const,reason:"Memory kind is not permitted"};
     if("status" in values&&!["candidate","active"].includes(String(values.status)))return {ok:false as const,reason:"Memory status is not permitted"};
-    if(typeof values.content!=="string"||!values.content.trim()||values.content.length>8000)return {ok:false as const,reason:"Memory content must be 1 to 8000 characters"};
+    if(typeof values.content!=="string"||!values.content.trim()||values.content.length>8000)return {ok:false as const,reason:"Memory content must be 1 to 8000 characters"};\n    if("metadata" in values&&(values.metadata===null||typeof values.metadata!=="object"||Array.isArray(values.metadata)))return {ok:false as const,reason:"Memory metadata must be an object"};\n    if("expires_at" in values&&(values.expires_at!==null&&(typeof values.expires_at!=="string"||Number.isNaN(Date.parse(values.expires_at)))))return {ok:false as const,reason:"Memory expiration must be a valid timestamp or null"};
   }
   return {ok:true as const};
 }
