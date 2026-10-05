@@ -17,7 +17,7 @@ export function validateActionInput(toolId:string|undefined,input:Record<string,
   }
   if(toolId==="github.write"){
     const allowed=new Set(["create_branch","create_file","update_file","create_issue","comment_issue"]);
-    if(!text("repository")||!/^[A-Za-z0-9_.-]+\\/[A-Za-z0-9_.-]+$/.test(String(input.repository)))return {ok:false as const,reason:"GitHub actions require a valid owner/repository"};
+    if(!text("repository")||!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(String(input.repository)))return {ok:false as const,reason:"GitHub actions require a valid owner/repository"};
     if(!text("action")||!allowed.has(String(input.action)))return {ok:false as const,reason:"GitHub action is not permitted"};
   }
   if(toolId==="database.write"){
