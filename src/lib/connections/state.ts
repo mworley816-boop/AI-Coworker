@@ -1,0 +1,6 @@
+import {createHmac,timingSafeEqual} from "crypto";
+type ConnectionState={userId:string;connectionId:string;provider:string;expiresAt:number};
+const secret=()=>process.env.CONNECTION_STATE_SECRET??"";
+const encode=(value:string)=>Buffer.from(value).toString("base64url");
+export function createConnectionState(input:Omit<ConnectionState,"expiresAt">,ttlSeconds=600){const key=secret();if(!key)throw new Error("Connection state secret is not configured");const payload=encode(JSON.stringify({...input,expiresAt:Date.now()+ttlSeconds*1000}));const signature=createHmac("sha256",key).update(payload).digest("base64url");return payload+"."+signature;}
+export function verifyConnectionState(value:string):ConnectionState|null{const key=secret();if(!key)return null;const [payload,signature,...extra]=value.split(".");if(!payload||!signature||extra.length)return null;const expected=createHmac("sha256",key).update(payload).digest("base64url");const a=Buffer.from(signature);const b=Buffer.from(expected);if(a.length!==b.length||!timingSafeEqual(a,b))return null;try{const parsed=JSON.parse(Buffer.from(payload,"base64url").toString("utf8")) as ConnectionState;if(!parsed.userId||!parsed.connectionId||!parsed.provider||!Number.isFinite(parsed.expiresAt)||parsed.expiresAt<Date.now())return null;return parsed;}catch{return null;}}
