@@ -8,18 +8,18 @@ export function validateActionInput(toolId:string|undefined,input:Record<string,
   if(toolId==="calendar.write"){
     const action=typeof input.action==="string"?input.action:"";
     if(!["create","update","delete"].includes(action))return {ok:false as const,reason:"Calendar action must be create, update, or delete"};
-    if((action==="update"||action==="delete")&&!text("eventId"))return {ok:false as const,reason:"Calendar update/delete requires an event ID"};
+    if((action==="update"||action==="delete")&&!text("eventId"))return {ok:false as const,reason:"Calendar update/delete requires an event id"};
     if(action!=="delete"&&(!text("title")||!text("start")||!text("end")))return {ok:false as const,reason:"Calendar create/update requires title, start, and end"};
   }
   if(toolId==="github.write"){
-    const action=typeof input.action==="string"?input.action:"";
-    if(!["create_branch","create_file","update_file","create_issue","comment_issue"].includes(action))return {ok:false as const,reason:"GitHub action is not permitted"};
+    const allowed=new Set(["create_branch","create_file","update_file","create_issue","comment_issue"]);
+    if(!text("repository"))return {ok:false as const,reason:"GitHub actions require owner/repository"};
+    if(!text("action")||!allowed.has(String(input.action)))return {ok:false as const,reason:"GitHub action is not permitted"};
   }
   if(toolId==="database.write"){
-    const operation=typeof input.operation==="string"?input.operation:"";
-    if(operation!=="insert"&&operation!=="update")return {ok:false as const,reason:"Database operation must be insert or update"};
-    if(operation==="update"&&!text("id"))return {ok:false as const,reason:"Database update requires a record ID"};
-    if(input.table!=="memories")return {ok:false as const,reason:"Only coworker memories are writable"};
+    if(input.table!=="memories")return {ok:false as const,reason:"Database actions currently support memories only"};
+    if(input.operation!=="insert"&&input.operation!=="update")return {ok:false as const,reason:"Database operation must be insert or update"};
+    if(input.operation==="update"&&!text("id"))return {ok:false as const,reason:"Database update requires a record id"};
     if(!input.values||typeof input.values!=="object"||Array.isArray(input.values))return {ok:false as const,reason:"Database action requires values"};
   }
   return {ok:true as const};
