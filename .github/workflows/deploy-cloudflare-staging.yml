@@ -27,3 +27,26 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
           NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          LLM_API_URL: ${{ secrets.LLM_API_URL }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          LLM_MODEL: ${{ secrets.LLM_MODEL }}
+          WEB_RESEARCH_API_URL: ${{ secrets.WEB_RESEARCH_API_URL }}
+          WEB_RESEARCH_API_KEY: ${{ secrets.WEB_RESEARCH_API_KEY }}
+          FILES_API_URL: ${{ secrets.FILES_API_URL }}
+          FILES_API_KEY: ${{ secrets.FILES_API_KEY }}
+          GITHUB_READ_API_URL: ${{ secrets.GITHUB_READ_API_URL }}
+          GITHUB_READ_API_KEY: ${{ secrets.GITHUB_READ_API_KEY }}
+          GITHUB_WRITE_API_URL: ${{ secrets.GITHUB_WRITE_API_URL }}
+          GITHUB_WRITE_API_KEY: ${{ secrets.GITHUB_WRITE_API_KEY }}
+          EMAIL_SEND_API_URL: ${{ secrets.EMAIL_SEND_API_URL }}
+          EMAIL_SEND_API_KEY: ${{ secrets.EMAIL_SEND_API_KEY }}
+          CALENDAR_WRITE_API_URL: ${{ secrets.CALENDAR_WRITE_API_URL }}
+          CALENDAR_WRITE_API_KEY: ${{ secrets.CALENDAR_WRITE_API_KEY }}
+          WORKER_SECRET: ${{ secrets.WORKER_SECRET }}
+          GITHUB_OAUTH_CLIENT_ID: ${{ secrets.GITHUB_OAUTH_CLIENT_ID }}
+          GITHUB_OAUTH_CLIENT_SECRET: ${{ secrets.GITHUB_OAUTH_CLIENT_SECRET }}
+          GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
+          GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
+          CONNECTION_STATE_SECRET: ${{ secrets.CONNECTION_STATE_SECRET }}
+          CONNECTION_ENCRYPTION_KEY: ${{ secrets.CONNECTION_ENCRYPTION_KEY }}
