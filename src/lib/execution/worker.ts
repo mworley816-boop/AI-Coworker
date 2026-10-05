@@ -8,10 +8,12 @@ export async function processNextQueuedRun(supabase:SupabaseLike,workerId:string
   const run=Array.isArray(data)?data[0]:data;
   if(!run)return {ok:true as const,idle:true as const};
   let heartbeat:ReturnType<typeof setInterval>|undefined;
+  let leaseLost=false;
   try{
-    heartbeat=setInterval(()=>{void renewRunLease(supabase,run.id,workerId);},30_000);
+    heartbeat=setInterval(()=>{void renewRunLease(supabase,run.id,workerId).then(async renewed=>{if(!renewed.ok){leaseLost=true;await supabase.from("activity_logs").insert({run_id:run.id,event_type:"run.lease_renewal_failed",message:"Background worker lost its execution lease heartbeat.",metadata:{workerId}});}});},30_000);
     await supabase.from("activity_logs").insert({run_id:run.id,event_type:"run.worker_claimed",message:"Background worker atomically claimed queued run.",metadata:{workerId}});
     const result=await executeRunWithClient(run.id,supabase);
+    if(leaseLost)return {ok:false as const,runId:run.id,reason:"Worker execution lease was lost",result};
     return {ok:result.ok,runId:run.id,result};
   }finally{
     if(heartbeat)clearInterval(heartbeat);
