@@ -17,7 +17,7 @@ export function validateActionInput(toolId:string|undefined,input:Record<string,
   }
   if(toolId==="github.write"){
     const allowed=new Set(["create_branch","create_file","update_file","create_issue","comment_issue"]);
-    if(!text("repository"))return {ok:false as const,reason:"GitHub actions require owner/repository"};
+    if(!text("repository")||!/^[A-Za-z0-9_.-]+\\/[A-Za-z0-9_.-]+$/.test(String(input.repository)))return {ok:false as const,reason:"GitHub actions require a valid owner/repository"};
     if(!text("action")||!allowed.has(String(input.action)))return {ok:false as const,reason:"GitHub action is not permitted"};
   }
   if(toolId==="database.write"){
@@ -25,6 +25,10 @@ export function validateActionInput(toolId:string|undefined,input:Record<string,
     if(input.operation!=="insert"&&input.operation!=="update")return {ok:false as const,reason:"Database operation must be insert or update"};
     if(input.operation==="update"&&!text("id"))return {ok:false as const,reason:"Database update requires a record id"};
     if(!input.values||typeof input.values!=="object"||Array.isArray(input.values))return {ok:false as const,reason:"Database action requires values"};
+    const values=input.values as Record<string,unknown>;
+    if("kind" in values&&!["working","long_term","project"].includes(String(values.kind)))return {ok:false as const,reason:"Memory kind is not permitted"};
+    if("status" in values&&!["candidate","active"].includes(String(values.status)))return {ok:false as const,reason:"Memory status is not permitted"};
+    if(typeof values.content!=="string"||!values.content.trim()||values.content.length>8000)return {ok:false as const,reason:"Memory content must be 1 to 8000 characters"};
   }
   return {ok:true as const};
 }
