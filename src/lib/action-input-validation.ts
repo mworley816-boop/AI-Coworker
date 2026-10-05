@@ -13,7 +13,7 @@ export function validateActionInput(toolId:string|undefined,input:Record<string,
     if(!["create","update","delete"].includes(action))return {ok:false as const,reason:"Calendar action must be create, update, or delete"};
     if((action==="update"||action==="delete")&&!text("eventId"))return {ok:false as const,reason:"Calendar update/delete requires an event id"};
     if(action!=="delete"&&(!text("title")||!text("start")||!text("end")))return {ok:false as const,reason:"Calendar create/update requires title, start, and end"};
-    if(action!=="delete"&&(Number.isNaN(Date.parse(String(input.start)))||Number.isNaN(Date.parse(String(input.end)))||Date.parse(String(input.end))<=Date.parse(String(input.start))))return {ok:false as const,reason:"Calendar end must be after a valid start time"};
+    if(action!=="delete"){const start=String(input.start),end=String(input.end);const hasZone=(value:string)=>/(Z|[+-]\\d{2}:\\d{2})$/i.test(value);if(!hasZone(start)||!hasZone(end))return {ok:false as const,reason:"Calendar start and end must include a timezone"};if(Number.isNaN(Date.parse(start))||Number.isNaN(Date.parse(end))||Date.parse(end)<=Date.parse(start))return {ok:false as const,reason:"Calendar end must be after a valid start time"};}
   }
   if(toolId==="github.write"){
     const allowed=new Set(["create_branch","create_file","update_file","create_issue","comment_issue"]);
