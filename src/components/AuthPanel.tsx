@@ -1,14 +1,4 @@
-export default function AuthPanel(){
-  return (
-    <div className="auth-panel">
-      <div>
-        <strong>Workspace access</strong>
-        <small>Sign in to save and run tasks</small>
-      </div>
-      <form method="post" action="/api/auth/magic-link">
-        <input name="email" type="email" required placeholder="you@example.com" />
-        <button type="submit">Email sign-in link</button>
-      </form>
-    </div>
-  );
+export default function AuthPanel({status,message}:{status?:string;message?:string}){
+  const text=status==="sent"?"Check your email for the sign-in link.":status==="config"?"Supabase is not configured in the Worker.":status==="email"?"Enter a valid email address.":status==="error"?(message||"Supabase could not send the sign-in link."):"Sign in to save and run tasks";
+  return <div className="auth-panel"><div><strong>Workspace access</strong><small>{text}</small></div><form method="post" action="/api/auth/magic-link"><input name="email" type="email" required placeholder="you@example.com"/><button type="submit">Email sign-in link</button></form></div>;
 }
