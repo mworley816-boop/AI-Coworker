@@ -41,7 +41,8 @@ export async function POST(){
  );
  const health=checks.every(c=>c.status==="healthy")?"healthy":checks.some(c=>c.status==="healthy")?"attention":"unknown";
  const now=new Date().toISOString();
- const persistedResources={...resources,maintenance:{checks,checkedAt:now}};\n const {error:updateError}=await supabase.from("workspaces").update({health,resources:persistedResources,last_checked_at:now,updated_at:now}).eq("id",workspace.id).eq("user_id",user.id);
+ const persistedResources={...resources,maintenance:{checks,checkedAt:now}};
+ const {error:updateError}=await supabase.from("workspaces").update({health,resources:persistedResources,last_checked_at:now,updated_at:now}).eq("id",workspace.id).eq("user_id",user.id);
  if(updateError)return NextResponse.json({error:updateError.message},{status:500});
  return NextResponse.json({health,checkedAt:now,checks});
 }
