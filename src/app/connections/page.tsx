@@ -1,3 +1,4 @@
+import {unstable_noStore as noStore} from "next/cache";
 import ConnectionHealthButton from "@/components/ConnectionHealthButton";
 import GitHubConnectButton from "@/components/GitHubConnectButton";
 import GoogleConnectButton from "@/components/GoogleConnectButton";
@@ -8,6 +9,7 @@ import {personalConnectionProviders} from "@/lib/connections";
 export const dynamic="force-dynamic";
 
 export default async function ConnectionsPage({searchParams}:{searchParams?:Promise<Record<string,string|string[]|undefined>>}){
+ noStore();
  const params=searchParams?await searchParams:{};
  const githubStatus=typeof params.github==="string"?params.github:"";
  const githubStage=typeof params.stage==="string"?params.stage:"";
