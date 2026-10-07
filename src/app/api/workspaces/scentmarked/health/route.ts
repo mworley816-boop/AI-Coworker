@@ -1,6 +1,7 @@
 import {NextResponse} from "next/server";
 import {createServerSupabaseClient} from "@/lib/supabase/server";
 import {getConnectedCredential} from "@/lib/connections/credentials";
+import {runtimeEnv} from "@/lib/runtime-env";
 
 type Check={id:string;label:string;status:"healthy"|"warning"|"unconfigured";detail:string};
 
@@ -13,6 +14,7 @@ export async function POST(){
  if(error)return NextResponse.json({error:error.message},{status:500});
  if(!workspace)return NextResponse.json({error:"Set up the Scentmarked workspace first."},{status:404});
  const resources=(workspace.resources??{}) as {github?:{repository?:string};supabase?:unknown;cloudflare?:unknown};
+ const env=await runtimeEnv();
  const checks:Check[]=[{id:"workspace",label:"Atlas workspace",status:"healthy",detail:"Scentmarked is configured as Atlas's priority workspace."}];
 
  if(resources.github?.repository){
@@ -35,8 +37,20 @@ export async function POST(){
   }
  }else checks.push({id:"github",label:"GitHub maintenance",status:"unconfigured",detail:"Repository is not configured."});
 
+ if(resources.supabase){
+  const url=env.SCENTMARKED_SUPABASE_URL;
+  const key=env.SCENTMARKED_SUPABASE_PUBLISHABLE_KEY;
+  if(!url||!key)checks.push({id:"supabase",label:"Scentmarked database",status:"warning",detail:"Project identified; add the Scentmarked Supabase URL and publishable key to Atlas runtime secrets for live checks."});
+  else{
+   try{
+    const response=await fetch(url.replace(/\/$/,"")+"/rest/v1/",{headers:{apikey:key,Authorization:"Bearer "+key}});
+    checks.push(response.status<500
+     ?{id:"supabase",label:"Scentmarked database",status:"healthy",detail:`Scentmarked Supabase is reachable (HTTP ${response.status}) using publishable read-level credentials.`}
+     :{id:"supabase",label:"Scentmarked database",status:"warning",detail:`Scentmarked Supabase returned HTTP ${response.status}.`});
+   }catch{checks.push({id:"supabase",label:"Scentmarked database",status:"warning",detail:"Scentmarked Supabase could not be reached."});}
+  }
+ }else checks.push({id:"supabase",label:"Scentmarked database",status:"unconfigured",detail:"Supabase project is not configured."});
  checks.push(
-  {id:"supabase",label:"Scentmarked database",status:resources.supabase?"warning":"unconfigured",detail:resources.supabase?"Project identified; Atlas still needs a controlled Scentmarked database connection.":"Supabase project is not configured."},
   {id:"cloudflare",label:"Cloudflare hosting",status:resources.cloudflare?"warning":"unconfigured",detail:resources.cloudflare?"Hosting identified; Atlas still needs a Cloudflare runtime connection for deployment health.":"Cloudflare hosting is not configured."}
  );
  const health=checks.every(c=>c.status==="healthy")?"healthy":checks.some(c=>c.status==="healthy")?"attention":"unknown";
