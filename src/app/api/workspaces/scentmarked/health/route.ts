@@ -28,6 +28,17 @@ export async function POST(){
      const repo=await response.json() as {full_name?:string;default_branch?:string;permissions?:{pull?:boolean;push?:boolean}};
      const access=repo.permissions?.push?"read/write":repo.permissions?.pull?"read":"available";
      checks.push({id:"github",label:"GitHub maintenance",status:"healthy",detail:`${repo.full_name??resources.github.repository} reachable • ${access} access • default branch ${repo.default_branch??"unknown"}`});
+     try{
+      const actions=await fetch(`https://api.github.com/repos/${resources.github.repository}/actions/runs?per_page=10`,{headers:{Authorization:`Bearer ${credential.credential}`,Accept:"application/vnd.github+json","User-Agent":"Atlas-Scentmarked-Maintenance","X-GitHub-Api-Version":"2022-11-28"}});
+      if(!actions.ok)checks.push({id:"github_actions",label:"GitHub Actions",status:"warning",detail:`Could not inspect workflow runs (HTTP ${actions.status}).`});
+      else{
+       const result=await actions.json() as {workflow_runs?:Array<{name?:string;conclusion?:string|null;status?:string;html_url?:string}>};
+       const runs=result.workflow_runs??[];
+       const failed=runs.filter(run=>run.status==="completed"&&["failure","timed_out","cancelled","action_required"].includes(run.conclusion??""));
+       const running=runs.filter(run=>run.status!=="completed").length;
+       checks.push({id:"github_actions",label:"GitHub Actions",status:failed.length?"warning":"healthy",detail:failed.length?`${failed.length} of the latest ${runs.length} workflow runs need attention. Most recent: ${failed[0].name??"Unnamed workflow"} (${failed[0].conclusion}).`:`Checked ${runs.length} recent workflow runs • ${running} in progress • no failures detected.`});
+      }
+     }catch{checks.push({id:"github_actions",label:"GitHub Actions",status:"warning",detail:"Could not retrieve recent workflow runs."});}
     }else{
      checks.push({id:"github",label:"GitHub maintenance",status:"warning",detail:`GitHub connection could not access Scentmarked (HTTP ${response.status}).`});
     }
