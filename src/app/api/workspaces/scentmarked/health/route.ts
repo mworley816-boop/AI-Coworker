@@ -93,9 +93,16 @@ export async function POST(){
  }catch{
   checks.push({id:"website",label:"Scentmarked website",status:"warning",detail:"Production homepage could not be reached within 10 seconds or the request failed."});
  }
+ const prior=(workspace.resources as {maintenance?:{checks?:Check[];websiteFailureStreak?:number}}|null)?.maintenance;
+ const websiteCheck=checks.find(check=>check.id==="website");
+ const previousStreak=typeof prior?.websiteFailureStreak==="number"?prior.websiteFailureStreak:0;
+ const websiteFailureStreak=websiteCheck?.status==="warning"?previousStreak+1:0;
+ if(websiteCheck?.status==="warning"){
+  websiteCheck.detail+=websiteFailureStreak>=3?` Repeated failure detected (${websiteFailureStreak} consecutive checks).`:` Failure ${websiteFailureStreak} of 3 consecutive checks needed for a repeated-outage warning.`;
+ }
  const health=checks.every(c=>c.status==="healthy")?"healthy":checks.some(c=>c.status==="healthy")?"attention":"unknown";
  const now=new Date().toISOString();
- const persistedResources={...resources,maintenance:{checks,checkedAt:now}};
+ const persistedResources={...resources,maintenance:{checks,checkedAt:now,websiteFailureStreak}};
  const {error:updateError}=await supabase.from("workspaces").update({health,resources:persistedResources,last_checked_at:now,updated_at:now}).eq("id",workspace.id).eq("user_id",user.id);
  if(updateError)return NextResponse.json({error:updateError.message},{status:500});
  return NextResponse.json({health,checkedAt:now,checks});
