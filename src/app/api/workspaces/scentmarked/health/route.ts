@@ -81,7 +81,7 @@ export async function POST(){
     const deployments=data.result?.deployments??[];
     if(!data.success)checks.push({id:"cloudflare",label:"Cloudflare hosting",status:"warning",detail:"Cloudflare API did not confirm a successful response."});
     else if(deployments.length===0)checks.push({id:"cloudflare",label:"Cloudflare hosting",status:"warning",detail:"Cloudflare connection works, but no Scentmarked Worker deployments were returned."});
-    else checks.push({id:"cloudflare",label:"Cloudflare hosting",status:"healthy",detail:`Cloudflare Worker reachable • ${deployments.length} deployment records • latest ${deployments[0].created_on??"date unavailable"}.`});
+    else{const latest=deployments[0];const deployedVersions=latest.versions??[];const active=deployedVersions.filter(v=>typeof v.percentage==="number"&&v.percentage>0);checks.push({id:"cloudflare",label:"Cloudflare hosting",status:"healthy",detail:`Cloudflare Worker deployment API reachable • ${deployments.length} deployment records • latest ${latest.created_on??"date unavailable"} • ${active.length} version(s) receiving traffic. Deployment history does not prove build success or runtime health.`});}
    }
   }catch{checks.push({id:"cloudflare",label:"Cloudflare hosting",status:"warning",detail:"Cloudflare deployment request failed or timed out."});}
  }
