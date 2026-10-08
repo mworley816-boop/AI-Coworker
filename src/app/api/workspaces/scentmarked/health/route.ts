@@ -29,6 +29,13 @@ export async function POST(){
      const access=repo.permissions?.push?"read/write":repo.permissions?.pull?"read":"available";
      checks.push({id:"github",label:"GitHub maintenance",status:"healthy",detail:`${repo.full_name??resources.github.repository} reachable • ${access} access • default branch ${repo.default_branch??"unknown"}`});
      try{
+      const workflowList=await fetch(`https://api.github.com/repos/${resources.github.repository}/actions/workflows?per_page=100`,{headers:{Authorization:`Bearer ${credential.credential}`,Accept:"application/vnd.github+json","User-Agent":"Atlas-Scentmarked-Maintenance","X-GitHub-Api-Version":"2022-11-28"}});
+      if(workflowList.ok){
+       const workflowData=await workflowList.json() as {total_count?:number;workflows?:Array<{state?:string}>};
+       const count=workflowData.total_count??workflowData.workflows?.length??0;
+       const active=workflowData.workflows?.filter(w=>w.state==="active").length??0;
+       checks.push({id:"github_workflows",label:"GitHub workflows",status:count===0?"warning":"healthy",detail:count===0?"No GitHub Actions workflows were found in Scentmarked.":`${count} workflows configured • ${active} active.`});
+      }else checks.push({id:"github_workflows",label:"GitHub workflows",status:"warning",detail:`Cannot list workflows (HTTP ${workflowList.status}). Check Actions permissions.`});
       const actions=await fetch(`https://api.github.com/repos/${resources.github.repository}/actions/runs?per_page=10`,{headers:{Authorization:`Bearer ${credential.credential}`,Accept:"application/vnd.github+json","User-Agent":"Atlas-Scentmarked-Maintenance","X-GitHub-Api-Version":"2022-11-28"}});
       if(!actions.ok)checks.push({id:"github_actions",label:"GitHub Actions",status:"warning",detail:actions.status===403||actions.status===404?`Workflow history is inaccessible (HTTP ${actions.status}). Verify the connected GitHub account has Actions read access to this repository.`:`Could not inspect workflow runs (HTTP ${actions.status}).`});
       else{
