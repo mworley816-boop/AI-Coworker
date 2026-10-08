@@ -75,7 +75,7 @@ export async function POST(){
  }else{
   try{
    const cf=await fetch(`https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(cfAccount)}/workers/scripts/scentmarked/deployments`,{headers:{Authorization:`Bearer ${cfToken}`,Accept:"application/json"},signal:AbortSignal.timeout(10000)});
-   if(!cf.ok){checks.push({id:"cloudflare",label:"Cloudflare hosting",status:"warning",detail:`Cloudflare deployments API returned HTTP ${cf.status}; check account ID and token permissions.`});}
+   if(!cf.ok){let reason="";try{const payload=await cf.json() as {errors?:Array<{code?:number;message?:string}>};reason=(payload.errors??[]).slice(0,2).map(e=>`${e.code??"unknown"}: ${String(e.message??"unknown").slice(0,140)}`).join("; ");}catch{}checks.push({id:"cloudflare",label:"Cloudflare hosting",status:"warning",detail:`Cloudflare deployments API returned HTTP ${cf.status}${reason?` • ${reason}`:""}; check account ID, endpoint and token permissions.`});}
    else{
     const data=await cf.json() as {success?:boolean;result?:{deployments?:Array<{created_on?:string;versions?:Array<{version_id?:string;percentage?:number}>}>};errors?:Array<{message?:string}>};
     const deployments=data.result?.deployments??[];
