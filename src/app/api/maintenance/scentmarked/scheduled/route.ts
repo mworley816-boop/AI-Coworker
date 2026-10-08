@@ -12,6 +12,7 @@ export async function POST(request:NextRequest){
  if(!supabase)return NextResponse.json({error:"Maintenance database service unavailable."},{status:503});
  const {data:workspaces,error}=await supabase.from("workspaces").select("id,user_id,resources").eq("slug","scentmarked").limit(100);
  if(error)return NextResponse.json({error:"Could not load maintenance workspaces."},{status:500});
+ if(!workspaces?.length)return NextResponse.json({error:"No Scentmarked workspaces were found; no website checks ran.",checked:0,results:[]},{status:503});
  const results=[];
  for(const workspace of workspaces??[]){
   const resources=(workspace.resources??{}) as Record<string,unknown>;
