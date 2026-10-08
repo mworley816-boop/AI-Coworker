@@ -93,7 +93,7 @@ export async function POST(){
  }catch{
   checks.push({id:"website",label:"Scentmarked website",status:"warning",detail:"Production homepage could not be reached within 10 seconds or the request failed."});
  }
- const prior=(workspace.resources as {maintenance?:{checks?:Check[];websiteFailureStreak?:number}}|null)?.maintenance;
+ const prior=(workspace.resources as {maintenance?:{checks?:Check[];websiteFailureStreak?:number;websiteEvents?:Array<{type:"outage"|"recovery";at:string;detail:string}>}}|null)?.maintenance;
  const websiteCheck=checks.find(check=>check.id==="website");
  const previousStreak=typeof prior?.websiteFailureStreak==="number"?prior.websiteFailureStreak:0;
  const websiteFailureStreak=websiteCheck?.status==="warning"?previousStreak+1:0;
@@ -102,7 +102,13 @@ export async function POST(){
  }
  const health=checks.every(c=>c.status==="healthy")?"healthy":checks.some(c=>c.status==="healthy")?"attention":"unknown";
  const now=new Date().toISOString();
- const persistedResources={...resources,maintenance:{checks,checkedAt:now,websiteFailureStreak}};
+ const websiteEvents=[...(prior?.websiteEvents??[])].slice(-49);
+ if(websiteCheck?.status==="warning"&&websiteFailureStreak===3){
+  websiteEvents.push({type:"outage" as const,at:now,detail:websiteCheck.detail});
+ }else if(websiteCheck?.status==="healthy"&&previousStreak>=3){
+  websiteEvents.push({type:"recovery" as const,at:now,detail:websiteCheck.detail});
+ }
+ const persistedResources={...resources,maintenance:{checks,checkedAt:now,websiteFailureStreak,websiteEvents}};
  const {error:updateError}=await supabase.from("workspaces").update({health,resources:persistedResources,last_checked_at:now,updated_at:now}).eq("id",workspace.id).eq("user_id",user.id);
  if(updateError)return NextResponse.json({error:updateError.message},{status:500});
  return NextResponse.json({health,checkedAt:now,checks});
