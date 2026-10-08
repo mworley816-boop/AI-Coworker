@@ -68,9 +68,23 @@ export async function POST(){
    }catch{checks.push({id:"supabase",label:"Scentmarked database",status:"warning",detail:"Scentmarked Supabase could not be reached."});}
   }
  }else checks.push({id:"supabase",label:"Scentmarked database",status:"unconfigured",detail:"Supabase project is not configured."});
- checks.push(
-  {id:"cloudflare",label:"Cloudflare hosting",status:resources.cloudflare?"warning":"unconfigured",detail:resources.cloudflare?"Hosting identified; Atlas still needs a Cloudflare runtime connection for deployment health.":"Cloudflare hosting is not configured."}
- );
+ const cfToken=env.SCENTMARKED_CLOUDFLARE_API_TOKEN;
+ const cfAccount=env.SCENTMARKED_CLOUDFLARE_ACCOUNT_ID;
+ if(!cfToken||!cfAccount){
+  checks.push({id:"cloudflare",label:"Cloudflare hosting",status:"warning",detail:"Scentmarked Worker identified. Add SCENTMARKED_CLOUDFLARE_ACCOUNT_ID and read-only SCENTMARKED_CLOUDFLARE_API_TOKEN to Atlas Worker secrets to check deployments."});
+ }else{
+  try{
+   const cf=await fetch(`https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(cfAccount)}/workers/scripts/scentmarked/deployments`,{headers:{Authorization:`Bearer ${cfToken}`,Accept:"application/json"},signal:AbortSignal.timeout(10000)});
+   if(!cf.ok){checks.push({id:"cloudflare",label:"Cloudflare hosting",status:"warning",detail:`Cloudflare deployments API returned HTTP ${cf.status}; check account ID and token permissions.`});}
+   else{
+    const data=await cf.json() as {success?:boolean;result?:{deployments?:Array<{created_on?:string;versions?:Array<{version_id?:string;percentage?:number}>}>};errors?:Array<{message?:string}>};
+    const deployments=data.result?.deployments??[];
+    if(!data.success)checks.push({id:"cloudflare",label:"Cloudflare hosting",status:"warning",detail:"Cloudflare API did not confirm a successful response."});
+    else if(deployments.length===0)checks.push({id:"cloudflare",label:"Cloudflare hosting",status:"warning",detail:"Cloudflare connection works, but no Scentmarked Worker deployments were returned."});
+    else checks.push({id:"cloudflare",label:"Cloudflare hosting",status:"healthy",detail:`Cloudflare Worker reachable • ${deployments.length} deployment records • latest ${deployments[0].created_on??"date unavailable"}.`});
+   }
+  }catch{checks.push({id:"cloudflare",label:"Cloudflare hosting",status:"warning",detail:"Cloudflare deployment request failed or timed out."});}
+ }
  const health=checks.every(c=>c.status==="healthy")?"healthy":checks.some(c=>c.status==="healthy")?"attention":"unknown";
  const now=new Date().toISOString();
  const persistedResources={...resources,maintenance:{checks,checkedAt:now}};
