@@ -31,7 +31,7 @@ export async function POST(request:NextRequest){
   if(streak===3)events.push({type:"outage",at:now,detail});
   if(status==="healthy"&&previousStreak>=3)events.push({type:"recovery",at:now,detail});
   const checks=[...(prior.checks??[]).filter(c=>c.id!=="website"),{id:"website",label:"Scentmarked website",status,detail:status==="warning"?`${detail} Consecutive failures: ${streak}.`:detail}];
-  const maintenance={...prior,checks,checkedAt:now,websiteFailureStreak:streak,websiteEvents:events};
+  const maintenance={...prior,checks,checkedAt:now,lastScheduledCheck:now,websiteFailureStreak:streak,websiteEvents:events};
   const health=checks.every(c=>c.status==="healthy")?"healthy":"attention";
   const {error:updateError}=await supabase.from("workspaces").update({resources:{...resources,maintenance},health,last_checked_at:now,updated_at:now}).eq("id",workspace.id).eq("user_id",workspace.user_id);
   results.push({workspaceId:workspace.id,ok:!updateError,websiteStatus:status,repeatedOutage:streak>=3,newOutage:!updateError&&streak===3,recovered:!updateError&&status==="healthy"&&previousStreak>=3});
