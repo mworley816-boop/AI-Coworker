@@ -30,4 +30,12 @@ jobs:
             -X POST \
             -H "Authorization: Bearer $CRON_SECRET" \
             -H "Content-Type: application/json" \
-            "https://ai-coworker-staging.m-worley816.workers.dev/api/maintenance/scentmarked/scheduled"
+            "https://ai-coworker-staging.m-worley816.workers.dev/api/maintenance/scentmarked/scheduled")
+          echo "$response" | jq -e '.results | type == "array"' >/dev/null
+          if echo "$response" | jq -e 'any(.results[]; .newOutage == true)' >/dev/null; then
+            echo "::error::Scentmarked website outage confirmed after three consecutive failed checks. Review Atlas outage history."
+            exit 1
+          fi
+          if echo "$response" | jq -e 'any(.results[]; .recovered == true)' >/dev/null; then
+            echo "::notice::Scentmarked website recovered. Review Atlas outage history."
+          fi
