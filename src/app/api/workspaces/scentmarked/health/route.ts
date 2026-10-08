@@ -47,7 +47,7 @@ export async function POST(){
       }
      }catch{checks.push({id:"github_actions",label:"GitHub Actions",status:"warning",detail:"Could not retrieve recent workflow runs."});}
     }else{
-     checks.push({id:"github",label:"GitHub maintenance",status:"warning",detail:`GitHub connection could not access Scentmarked (HTTP ${response.status}).`});
+     const authFailure=response.status===401;let reason="";try{const body=await response.json() as {message?:unknown};if(typeof body.message==="string")reason=body.message.slice(0,160);}catch{}checks.push({id:"github",label:"GitHub maintenance",status:"warning",detail:authFailure?`GitHub rejected the stored OAuth credential (HTTP 401${reason?`: ${reason}`:""}). Reconnect GitHub in Atlas; do not change the OAuth app secret unless reconnecting also fails.`:`GitHub connection could not access Scentmarked (HTTP ${response.status}${reason?`: ${reason}`:""}).`});
     }
    }catch{
     checks.push({id:"github",label:"GitHub maintenance",status:"warning",detail:"GitHub is connected, but the Scentmarked repository check failed."});
