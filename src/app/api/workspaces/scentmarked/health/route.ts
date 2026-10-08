@@ -108,7 +108,7 @@ export async function POST(){
  }else if(websiteCheck?.status==="healthy"&&previousStreak>=3){
   websiteEvents.push({type:"recovery" as const,at:now,detail:websiteCheck.detail});
  }
- const persistedResources={...resources,maintenance:{checks,checkedAt:now,websiteFailureStreak,websiteEvents}};
+ const persistedResources={...resources,maintenance:{...(prior??{}),checks,checkedAt:now,websiteFailureStreak,websiteEvents}};
  const {error:updateError}=await supabase.from("workspaces").update({health,resources:persistedResources,last_checked_at:now,updated_at:now}).eq("id",workspace.id).eq("user_id",user.id);
  if(updateError)return NextResponse.json({error:updateError.message},{status:500});
  return NextResponse.json({health,checkedAt:now,checks});
