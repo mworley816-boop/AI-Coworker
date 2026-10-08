@@ -85,6 +85,14 @@ export async function POST(){
    }
   }catch{checks.push({id:"cloudflare",label:"Cloudflare hosting",status:"warning",detail:"Cloudflare deployment request failed or timed out."});}
  }
+ try{
+  const started=Date.now();
+  const site=await fetch("https://scentmarked.m-worley816.workers.dev/",{method:"GET",redirect:"follow",cache:"no-store",headers:{"User-Agent":"Atlas-Scentmarked-Healthcheck"},signal:AbortSignal.timeout(10000)});
+  const duration=Date.now()-started;
+  checks.push({id:"website",label:"Scentmarked website",status:site.ok?"healthy":"warning",detail:site.ok?`Production homepage responded HTTP ${site.status} in ${duration} ms.`:`Production homepage returned HTTP ${site.status} after ${duration} ms; investigate availability.`});
+ }catch{
+  checks.push({id:"website",label:"Scentmarked website",status:"warning",detail:"Production homepage could not be reached within 10 seconds or the request failed."});
+ }
  const health=checks.every(c=>c.status==="healthy")?"healthy":checks.some(c=>c.status==="healthy")?"attention":"unknown";
  const now=new Date().toISOString();
  const persistedResources={...resources,maintenance:{checks,checkedAt:now}};
