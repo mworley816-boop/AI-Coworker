@@ -23,7 +23,7 @@ export async function POST(request:NextRequest){
    const response=await fetch("https://scentmarked.m-worley816.workers.dev/",{cache:"no-store",signal:AbortSignal.timeout(10000),headers:{"User-Agent":"Atlas-Scentmarked-Scheduled-Healthcheck"}});
    status=response.ok?"healthy":"warning";
    detail=`Production homepage returned HTTP ${response.status} in ${Date.now()-start} ms.`;
-  }catch{detail="Production homepage request failed or timed out after 10 seconds.";}
+  }catch(error){detail=error instanceof Error&&error.name==="TimeoutError"?"Production homepage request timed out after 10 seconds.":"Production homepage request failed before receiving an HTTP response.";}
   const previousStreak=prior.websiteFailureStreak??0;
   const streak=status==="healthy"?0:previousStreak+1;
   const now=new Date().toISOString();
