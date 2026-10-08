@@ -17,12 +17,17 @@ export async function GET(){
   ]);
   const error=coworkers.error??tasks.error??approvals.error??runs.error??atlas.error??scentmarked.error;
   if(error)return NextResponse.json({error:error.message},{status:500});
+  const maintenance=(scentmarked.data?.resources as {maintenance?:{repairRequest?:{taskId?:string;runId?:string}}}|null)?.maintenance;
+  const repair=maintenance?.repairRequest;
+  const [repairTask,repairRun]=await Promise.all([repair?.taskId?supabase.from("tasks").select("id,status,goal").eq("id",repair.taskId).eq("user_id",user.id).maybeSingle():Promise.resolve({data:null,error:null}),repair?.runId?supabase.from("runs").select("id,status,started_at,finished_at").eq("id",repair.runId).maybeSingle():Promise.resolve({data:null,error:null})]);
+  if(repairTask.error||repairRun.error)return NextResponse.json({error:"Could not load investigation progress."},{status:500});
   return NextResponse.json({
     coworkers:coworkers.count??0,
     active:tasks.count??0,
     approvals:approvals.count??0,
     runsToday:runs.count??0,
     atlasStatus:atlas.data?.status??"Not created yet",
-    scentmarked:scentmarked.data??null
+    scentmarked:scentmarked.data??null,
+    investigation:repair?.taskId?{task:repairTask.data??null,run:repairRun.data??null}:null
   });
 }
