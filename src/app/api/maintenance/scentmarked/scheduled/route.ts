@@ -33,7 +33,8 @@ export async function POST(request:NextRequest){
   const maintenance={...prior,checks,checkedAt:now,websiteFailureStreak:streak,websiteEvents:events};
   const health=checks.every(c=>c.status==="healthy")?"healthy":"attention";
   const {error:updateError}=await supabase.from("workspaces").update({resources:{...resources,maintenance},health,last_checked_at:now,updated_at:now}).eq("id",workspace.id).eq("user_id",workspace.user_id);
-  results.push({workspaceId:workspace.id,ok:!updateError,websiteStatus:status,repeatedOutage:streak>=3});
+  results.push({workspaceId:workspace.id,ok:!updateError,websiteStatus:status,repeatedOutage:streak>=3,newOutage:!updateError&&streak===3,recovered:!updateError&&status==="healthy"&&previousStreak>=3});
  }
+ if(results.some(result=>!result.ok))return NextResponse.json({error:"Some workspace health updates failed.",checked:results.length,results},{status:500});
  return NextResponse.json({checked:results.length,results});
 }
