@@ -36,7 +36,7 @@ export async function POST(){
        const runs=result.workflow_runs??[];
        const failed=runs.filter(run=>run.status==="completed"&&["failure","timed_out","cancelled","action_required"].includes(run.conclusion??""));
        const running=runs.filter(run=>run.status!=="completed").length;
-       checks.push({id:"github_actions",label:"GitHub Actions",status:failed.length?"warning":"healthy",detail:failed.length?`${failed.length} of the latest ${runs.length} workflow runs need attention. Most recent: ${failed[0].name??"Unnamed workflow"} (${failed[0].conclusion}).`:`Checked ${runs.length} recent workflow runs • ${running} in progress • no failures detected.`});
+       checks.push({id:"github_actions",label:"GitHub Actions",status:runs.length===0||failed.length?"warning":"healthy",detail:runs.length===0?"No workflow runs were returned. Atlas cannot confirm workflow health; check Actions permissions or whether this repository has any runs.":failed.length?`${failed.length} of the latest ${runs.length} workflow runs need attention. Most recent: ${failed[0].name??"Unnamed workflow"} (${failed[0].conclusion}).`:`Checked ${runs.length} recent workflow runs • ${running} in progress • no failures detected.`});
       }
      }catch{checks.push({id:"github_actions",label:"GitHub Actions",status:"warning",detail:"Could not retrieve recent workflow runs."});}
     }else{
