@@ -16,7 +16,7 @@ export async function POST(){
  const existing=(maintenance.repairRequest??null) as {status?:string;outageAt?:string}|null;
  const outageAt=events.at(-1)?.at;
  if(existing?.status==="pending"&&existing.outageAt===outageAt)return NextResponse.json({status:"pending",alreadyExists:true});
- const repairRequest={status:"pending",outageAt,createdAt:new Date().toISOString(),kind:"investigate-outage",requiresApproval:true};
+ const repairRequest={status:"pending",outageAt,createdAt:new Date().toISOString(),kind:"investigate-outage",requiresApproval:true,scope:"read-only diagnostics",nextStep:"Review Cloudflare deployment and Worker logs before proposing a production change."};
  const {error:updateError}=await supabase.from("workspaces").update({resources:{...resources,maintenance:{...maintenance,repairRequest}}}).eq("id",workspace.id).eq("user_id",user.id);
  if(updateError)return NextResponse.json({error:"Could not save repair request."},{status:500});
  return NextResponse.json({status:"pending",request:repairRequest});
