@@ -7,11 +7,13 @@ export async function POST(request:Request){
  if(!supabase)return NextResponse.json({error:"Supabase is not configured."},{status:503});
  const {data:{user}}=await supabase.auth.getUser();
  if(!user)return NextResponse.json({error:"Sign in is required."},{status:401});
- let body:{decision?:unknown;reason?:unknown};
+ let body:{decision?:unknown;reason?:unknown;proposal?:unknown};
  try{body=await request.json();}catch{return NextResponse.json({error:"Invalid request."},{status:400});}
  if(body.decision!=="approve"&&body.decision!=="reject")return NextResponse.json({error:"Invalid decision."},{status:400});
  const decision=body.decision as Decision;
  const reason=typeof body.reason==="string"?body.reason.trim():"";
+ const proposal=typeof body.proposal==="string"?body.proposal.trim():"";
+ if(proposal.length<20||proposal.length>2000)return NextResponse.json({error:"A specific repair proposal between 20 and 2000 characters is required."},{status:400});
  if(reason.length<10||reason.length>2000)return NextResponse.json({error:"Provide a reason between 10 and 2000 characters."},{status:400});
  const {data:workspace,error}=await supabase.from("workspaces").select("id,resources").eq("slug","scentmarked").eq("user_id",user.id).maybeSingle();
  if(error)return NextResponse.json({error:"Workspace lookup failed."},{status:500});
@@ -29,9 +31,9 @@ export async function POST(request:Request){
  const prior=(maintenance.repairDecision??null) as {runId?:string}|null;
  if(prior?.runId===run.id)return NextResponse.json({error:"A decision is already recorded for this investigation."},{status:409});
  const recordedAt=new Date().toISOString();
- const repairDecision={runId:run.id,outageAt:repair.outageAt??null,decision,reason,recordedAt,recordedBy:user.id,executionAuthorized:false};
+ const repairDecision={runId:run.id,outageAt:repair.outageAt??null,decision,reason,proposal,recordedAt,recordedBy:user.id,executionAuthorized:false};
  const updated=await supabase.from("workspaces").update({resources:{...resources,maintenance:{...maintenance,repairDecision}}}).eq("id",workspace.id).eq("user_id",user.id);
  if(updated.error)return NextResponse.json({error:"Could not save repair decision."},{status:500});
- await supabase.from("activity_logs").insert({run_id:run.id,event_type:"scentmarked.repair_decision",message:`Repair proposal ${decision}d for review only; no execution authorized.`,metadata:{userId:user.id,decision,recordedAt,executionAuthorized:false}});
+ await supabase.from("activity_logs").insert({run_id:run.id,event_type:"scentmarked.repair_decision",message:`Repair proposal ${decision}d for review only; no execution authorized.`,metadata:{userId:user.id,decision,proposal,recordedAt,executionAuthorized:false}});
  return NextResponse.json({ok:true,repairDecision});
 }
