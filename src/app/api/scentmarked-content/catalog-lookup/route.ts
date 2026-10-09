@@ -9,7 +9,9 @@ export async function GET(request:NextRequest){
  const name=(request.nextUrl.searchParams.get("name")??"").trim();
  if(name.length<2||name.length>120)return NextResponse.json({ok:false,message:"Enter a perfume name between 2 and 120 characters"},{status:400});
  const base=process.env.SCENTMARKED_SUPABASE_URL;
- const privateKey=process.env.SCENTMARKED_SUPABASE_SERVICE_ROLE_KEY;
+ const allowedAdmins=(process.env.SCENTMARKED_ATLAS_ADMIN_EMAILS??"").split(",").map(s=>s.trim().toLowerCase()).filter(Boolean);
+ const isAuthorizedAdmin=Boolean(user.email&&allowedAdmins.includes(user.email.toLowerCase()));
+ const privateKey=isAuthorizedAdmin?process.env.SCENTMARKED_SUPABASE_SERVICE_ROLE_KEY:undefined;
  const key=privateKey||process.env.SCENTMARKED_SUPABASE_ANON_KEY;
  if(!base||!key)return NextResponse.json({ok:false,message:"Scentmarked catalog lookup is not configured"},{status:503});
  let url:URL;try{url=new URL("/rest/v1/perfumes",base);if(url.protocol!=="https:")throw Error("HTTPS required");}catch{return NextResponse.json({ok:false,message:"Scentmarked catalog URL is invalid"},{status:503});}
