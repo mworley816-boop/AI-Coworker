@@ -36,8 +36,9 @@ export async function POST(request:Request){
  if(prior?.runId===run.id)return NextResponse.json({error:"A decision is already recorded for this investigation."},{status:409});
  const recordedAt=new Date().toISOString();
  const repairDecision={runId:run.id,outageAt:repair.outageAt??null,decision,reason,proposal,recordedAt,recordedBy:user.id,executionAuthorized:false,executionStatus:"not_requested",approvalScope:"proposal_review_only"};
- const updated=await supabase.from("workspaces").update({resources:{...resources,maintenance:{...maintenance,repairDecision}}}).eq("id",workspace.id).eq("user_id",user.id);
- if(updated.error)return NextResponse.json({error:"Could not save repair decision."},{status:500});
+ const updated=await supabase.from("workspaces").update({resources:{...resources,maintenance:{...maintenance,repairDecision}}}).eq("id",workspace.id).eq("user_id",user.id).eq("resources",workspace.resources).select("id");
+ if(updated.error)return NextResponse.json({error:"Could not save repair decision. Workspace changed during review; reload and retry."},{status:409});
+ if(!updated.data?.length)return NextResponse.json({error:"Workspace changed while recording the decision. Reload to see the current review state before trying again."},{status:409});
  const {error:auditError}=await supabase.from("activity_logs").insert({run_id:run.id,event_type:"scentmarked.repair_decision",message:`Repair proposal ${decision}d for review only; no execution authorized.`,metadata:{userId:user.id,decision,proposal,recordedAt,executionAuthorized:false,executionStatus:"not_requested",approvalScope:"proposal_review_only"}});
  if(auditError)return NextResponse.json({error:"Repair review was saved, but audit logging failed. Do not retry the decision; contact an administrator to reconcile the audit record.",decisionSaved:true,auditLogged:false},{status:500});
  return NextResponse.json({ok:true,repairDecision,auditLogged:true});
