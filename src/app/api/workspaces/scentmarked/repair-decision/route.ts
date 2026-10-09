@@ -33,7 +33,7 @@ export async function POST(request:Request){
  if(stepsError)return NextResponse.json({error:"Investigation evidence unavailable."},{status:500});
  if(decision==="approve"&&(!steps?.some(step=>step.status==="completed"&&step.output!=null&&((typeof step.output==="string"?step.output:JSON.stringify(step.output))??"").trim().length>=30)||steps.some(step=>step.status==="failed")))return NextResponse.json({error:"Cannot approve without substantive completed diagnostic evidence (at least 30 characters) and no failed steps."},{status:409});
  const prior=(maintenance.repairDecision??null) as {runId?:string}|null;
- if(prior?.runId===run.id)return NextResponse.json({error:"A decision is already recorded for this investigation."},{status:409});
+ if(prior?.runId===run.id)return NextResponse.json({error:"A decision is already recorded for this investigation. Reload to view the existing decision; do not submit another review.",alreadyRecorded:true,investigationRunId:run.id},{status:409});
  const recordedAt=new Date().toISOString();
  const repairDecision={runId:run.id,outageAt:repair.outageAt??null,decision,reason,proposal,recordedAt,recordedBy:user.id,executionAuthorized:false,executionStatus:"not_requested",approvalScope:"proposal_review_only"};
  const updated=await supabase.from("workspaces").update({resources:{...resources,maintenance:{...maintenance,repairDecision}}}).eq("id",workspace.id).eq("user_id",user.id).eq("resources",workspace.resources).select("id");
