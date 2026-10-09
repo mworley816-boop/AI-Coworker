@@ -31,10 +31,12 @@ export default function ScentmarkedContentManager(){
  function prepare(){
   const value=subject.trim();
   if(!value){setMessage("Enter a perfume or graphic description first.");return;}
+  if(workflow==="add"&&!catalogBrand.trim()){setMessage("Enter the perfume brand before preparing a catalog proposal; brand identity is required for duplicate review.");return;}
+  if(workflow==="add"&&draftSources.trim()&&!draftSources.trim().split(/[\s,]+/).filter(Boolean).every(source=>{try{const url=new URL(source);return url.protocol==="https:"||url.protocol==="http:";}catch{return false;}})){setMessage("Evidence leads must be full http:// or https:// URLs separated by spaces, commas, or new lines.");return;}
   const goal=workflow==="verify"
    ?`Research and verify Scentmarked perfume "${value}" using attributable manufacturer sources where possible. Check existing catalog records for duplicates and conflicting notes, release details, and concentration. Produce a cited diagnostic report only; do not write to the database or publish.`
    :workflow==="add"
-   ?`Prepare a review-only Scentmarked catalog entry for "${value}". Check existing records for duplicates, collect attributable sources for fragrance notes and release information, identify missing fields, and propose a record. Do not create, update, or publish any perfume.`
+   ?`Prepare a review-only Scentmarked catalog entry for brand "${catalogBrand.trim()}", perfume "${value}". Check existing records for duplicates, collect attributable sources for fragrance notes and release information, identify missing fields, and propose a record. Do not create, update, or publish any perfume.`
    :`Prepare a review-only Scentmarked graphics placement plan for "${value}". Check image rights, accessibility alt text, size and format, target placement, and approval requirements. Do not upload, replace, or publish graphics.`;
   const draftContext=workflow==="add"?` USER-SUPPLIED UNVERIFIED CLAIMS — do not treat these as verified facts: description: ${draftDescription.trim()||"not provided"}; fragrance notes: ${draftNotes.trim()||"not provided"}. SOURCE LEADS ONLY (not validated citations): ${draftSources.trim()||"not provided"}. Independently verify every proposed fact against its attributable source. Include source URL and verified/contradicted/unverified status per claim. Duplicate lookup must be reviewed independently before any creation. Output a review-only proposal with no write or publishing permission.`:"";
   const extra=(notes.trim()?` Additional context: ${notes.trim()}`:"")+draftContext;
