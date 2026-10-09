@@ -24,8 +24,10 @@ export async function POST(request:Request){
  const maintenance=(resources.maintenance??{}) as Record<string,unknown>;
  const repair=(maintenance.repairRequest??null) as {runId?:string;outageAt?:string}|null;
  if(!repair?.runId)return NextResponse.json({error:"No linked investigation."},{status:409});
- const {data:run,error:runError}=await supabase.from("runs").select("id,status").eq("id",repair.runId).maybeSingle();
+ const {data:run,error:runError}=await supabase.from("runs").select("id,status,task_id").eq("id",repair.runId).maybeSingle();
  if(runError||!run)return NextResponse.json({error:"Investigation run unavailable."},{status:409});
+ const {data:ownedTask,error:taskError}=await supabase.from("tasks").select("id").eq("id",run.task_id).eq("user_id",user.id).maybeSingle();
+ if(taskError||!ownedTask)return NextResponse.json({error:"Investigation does not belong to this user."},{status:403});
  if(run.status!=="completed")return NextResponse.json({error:"Investigation must be completed before recording a decision."},{status:409});
  const {data:steps,error:stepsError}=await supabase.from("run_steps").select("status,output").eq("run_id",run.id);
  if(stepsError)return NextResponse.json({error:"Investigation evidence unavailable."},{status:500});
