@@ -14,6 +14,7 @@ export async function GET(request:NextRequest){
  const base=process.env.SCENTMARKED_SUPABASE_URL;
  const allowedAdmins=(process.env.SCENTMARKED_ATLAS_ADMIN_EMAILS??"").split(",").map(s=>s.trim().toLowerCase()).filter(Boolean);
  const isAuthorizedAdmin=Boolean(user.email&&allowedAdmins.includes(user.email.toLowerCase()));
+ // Email allowlisting is only a read-scope restriction, never authorization to create or publish.
  const privateKey=isAuthorizedAdmin?process.env.SCENTMARKED_SUPABASE_SERVICE_ROLE_KEY:undefined;
  const key=privateKey||process.env.SCENTMARKED_SUPABASE_ANON_KEY;
  const accessMode=privateKey?"service_role_read":"anon_visible_only";
@@ -35,6 +36,6 @@ export async function GET(request:NextRequest){
   const resultStatus=exactMatchFound?"EXACT_DUPLICATE_CANDIDATE":truncated?"PARTIAL_RESULTS":"REVIEW_REQUIRED";
   const reviewRequiredReasons=[...(privateKey?[]:["PRIVATE_DRAFTS_NOT_CHECKED"]),...(truncated?["RESULTS_TRUNCATED"]:[]),...(!brand?["BRAND_NOT_SPECIFIED"]:[]),...(exactMatchFound?["EXACT_DUPLICATE_CANDIDATE"]:[]),"ALIASES_AND_VARIANTS_NOT_EXHAUSTIVE"];
   const visibleMatches=matches.slice(0,15);
-  return NextResponse.json({ok:true,matches:visibleMatches,truncated,reviewRequiredReasons,creationDecision:"HOLD_FOR_REVIEW",resultStatus,brandFilterApplied:Boolean(brand),aliasesChecked:aliases.length,exactMatchCount:visibleMatches.filter(m=>m.matchClass==="EXACT_BRAND_AND_NAME").length,scope:accessMode,complete:false,duplicateCheckStatus:"INCOMPLETE",safeToCreate:false,note:privateKey?"Search includes accessible drafts but only checks name candidates; brand identity and alternate names still require review.":"Results are limited by Scentmarked public read permissions. No match does not rule out private drafts or differently named duplicates."},{headers:{"cache-control":"no-store"}});
+  return NextResponse.json({ok:true,matches:visibleMatches,truncated,reviewRequiredReasons,creationDecision:"HOLD_FOR_REVIEW",approvalStatus:"PENDING_ADMIN_REVIEW",canCreateDraft:false,canPublish:false,resultStatus,brandFilterApplied:Boolean(brand),aliasesChecked:aliases.length,exactMatchCount:visibleMatches.filter(m=>m.matchClass==="EXACT_BRAND_AND_NAME").length,scope:accessMode,complete:false,duplicateCheckStatus:"INCOMPLETE",safeToCreate:false,note:privateKey?"Search includes accessible drafts but only checks name candidates; brand identity and alternate names still require review.":"Results are limited by Scentmarked public read permissions. No match does not rule out private drafts or differently named duplicates."},{headers:{"cache-control":"no-store"}});
  }catch{return NextResponse.json({ok:false,message:"Scentmarked catalog lookup unavailable"},{status:503});}finally{clearTimeout(timeout);}
 }
