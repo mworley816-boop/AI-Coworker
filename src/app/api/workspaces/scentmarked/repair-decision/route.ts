@@ -15,6 +15,7 @@ export async function POST(request:Request){
  const proposal=typeof body.proposal==="string"?body.proposal.trim():"";
  if(proposal.length<20||proposal.length>2000)return NextResponse.json({error:"A specific repair proposal between 20 and 2000 characters is required."},{status:400});
  if(decision==="approve"&&(/\[[^\]]*(?:specify|confirm|todo|tbd)[^\]]*\]/i.test(proposal)||!/proposed repair\s*:/i.test(proposal)||!/rollback plan\s*:/i.test(proposal)))return NextResponse.json({error:"Approval requires completed Proposed repair and Rollback plan sections without unfinished placeholders."},{status:400});
+ if(decision==="approve"){const repair=proposal.match(/proposed repair\s*:\s*([\s\S]*?)(?=rollback plan\s*:|$)/i)?.[1]?.trim()??"";const rollback=proposal.match(/rollback plan\s*:\s*([\s\S]*)/i)?.[1]?.trim()??"";if(repair.length<30||rollback.length<30)return NextResponse.json({error:"Approval requires at least 30 characters of substantive detail in both the Proposed repair and Rollback plan sections."},{status:400});}
  if(reason.length<10||reason.length>2000)return NextResponse.json({error:"Provide a reason between 10 and 2000 characters."},{status:400});
  const {data:workspace,error}=await supabase.from("workspaces").select("id,resources").eq("slug","scentmarked").eq("user_id",user.id).maybeSingle();
  if(error)return NextResponse.json({error:"Workspace lookup failed."},{status:500});
