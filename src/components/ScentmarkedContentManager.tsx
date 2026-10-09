@@ -35,6 +35,7 @@ export default function ScentmarkedContentManager(){
   if(!value){setMessage("Enter a perfume or graphic description first.");return;}
   if(workflow==="add"&&!catalogBrand.trim()){setMessage("Enter the perfume brand before preparing a catalog proposal; brand identity is required for duplicate review.");return;}
   if(workflow==="add"&&draftSources.trim()&&!draftSources.trim().split(/[\s,]+/).filter(Boolean).every(source=>{try{const url=new URL(source);return url.protocol==="https:"||url.protocol==="http:";}catch{return false;}})){setMessage("Evidence leads must be full http:// or https:// URLs separated by spaces, commas, or new lines.");return;}
+  if(workflow==="add"&&(!catalogSnapshot||catalogSnapshot.name!==value||catalogSnapshot.brand!==catalogBrand.trim()||catalogSnapshot.aliases!==catalogAliases.trim())){setMessage("Run the Scentmarked catalog duplicate check for this exact perfume, brand, and aliases before preparing a proposal.");return;}
   const goal=workflow==="verify"
    ?`Research and verify Scentmarked perfume "${value}" using attributable manufacturer sources where possible. Check existing catalog records for duplicates and conflicting notes, release details, and concentration. Produce a cited diagnostic report only; do not write to the database or publish.`
    :workflow==="add"
