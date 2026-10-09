@@ -29,7 +29,7 @@ export async function POST(request:Request){
  if(run.status!=="completed")return NextResponse.json({error:"Investigation must be completed before recording a decision."},{status:409});
  const {data:steps,error:stepsError}=await supabase.from("run_steps").select("status,output").eq("run_id",run.id);
  if(stepsError)return NextResponse.json({error:"Investigation evidence unavailable."},{status:500});
- if(decision==="approve"&&(!steps?.some(step=>step.status==="completed"&&step.output!=null)||steps.some(step=>step.status==="failed")))return NextResponse.json({error:"Cannot approve without completed diagnostic evidence and no failed steps."},{status:409});
+ if(decision==="approve"&&(!steps?.some(step=>step.status==="completed"&&step.output!=null&&((typeof step.output==="string"?step.output:JSON.stringify(step.output))??"").trim().length>=30)||steps.some(step=>step.status==="failed")))return NextResponse.json({error:"Cannot approve without substantive completed diagnostic evidence (at least 30 characters) and no failed steps."},{status:409});
  const prior=(maintenance.repairDecision??null) as {runId?:string}|null;
  if(prior?.runId===run.id)return NextResponse.json({error:"A decision is already recorded for this investigation."},{status:409});
  const recordedAt=new Date().toISOString();
