@@ -20,7 +20,7 @@ export async function POST(){
  const {data:coworker,error:coworkerError}=await supabase.from("coworkers").select("id").eq("user_id",user.id).eq("name","Atlas").maybeSingle();
  if(coworkerError)return NextResponse.json({error:"Could not find Atlas coworker."},{status:500});
  if(!coworker)return NextResponse.json({error:"Create Atlas before requesting an investigation."},{status:409});
- const goal="Investigate Scentmarked website outage using read-only GitHub repository information. Review the relevant source and recent changes; produce diagnostic findings and recommendations only. Do not change, deploy, or roll back production.";
+ const goal="Investigate the Scentmarked website outage through read-only GitHub repository research. Examine recent commits and relevant source code, summarize likely causes, and recommend next steps. Diagnostic report only; no external actions.";
  const steps=planGoal(goal);
  if(steps.some(step=>step.actionToolId||step.requiresApproval))return NextResponse.json({error:"Investigation plan must be read-only."},{status:500});
  const task=await supabase.from("tasks").insert({user_id:user.id,coworker_id:coworker.id,goal,status:"queued"}).select("id").single();
