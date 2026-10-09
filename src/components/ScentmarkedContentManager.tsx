@@ -14,7 +14,7 @@ export default function ScentmarkedContentManager(){
  const [message,setMessage]=useState("");
  const [saving,setSaving]=useState(false);
  const [readiness,setReadiness]=useState("Checking research configuration…");
- useEffect(()=>{let active=true;fetch("/api/scentmarked-content/status",{cache:"no-store"}).then(async response=>{const data=await response.json() as {researchConfigured?:boolean;reason?:string};if(active)setReadiness(response.ok?(data.researchConfigured?"Research configured (connection not yet tested)":"Research provider not configured"):(data.reason||"Research status unavailable"));}).catch(()=>{if(active)setReadiness("Research status unavailable");});return ()=>{active=false;};},[]);
+ useEffect(()=>{let active=true;fetch("/api/scentmarked-content/status",{cache:"no-store"}).then(async response=>{const data=await response.json() as {researchConfigured?:boolean;researchPermission?:"enabled"|"disabled"|"not_initialized";reason?:string};if(active)setReadiness(response.ok?(!data.researchConfigured?"Research provider not configured":data.researchPermission!=="enabled"?"Research configured, but Atlas web research permission is not enabled":"Research configured and permitted (connection not yet tested)"):(data.reason||"Research status unavailable"));}).catch(()=>{if(active)setReadiness("Research status unavailable");});return ()=>{active=false;};},[]);
  const [runId,setRunId]=useState<string|null>(null);
  const selected=workflows.find(item=>item.id===workflow)!;
  function prepare(){
