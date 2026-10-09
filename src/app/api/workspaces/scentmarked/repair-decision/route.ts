@@ -31,9 +31,9 @@ export async function POST(request:Request){
  const prior=(maintenance.repairDecision??null) as {runId?:string}|null;
  if(prior?.runId===run.id)return NextResponse.json({error:"A decision is already recorded for this investigation."},{status:409});
  const recordedAt=new Date().toISOString();
- const repairDecision={runId:run.id,outageAt:repair.outageAt??null,decision,reason,proposal,recordedAt,recordedBy:user.id,executionAuthorized:false};
+ const repairDecision={runId:run.id,outageAt:repair.outageAt??null,decision,reason,proposal,recordedAt,recordedBy:user.id,executionAuthorized:false,executionStatus:"not_requested",approvalScope:"proposal_review_only"};
  const updated=await supabase.from("workspaces").update({resources:{...resources,maintenance:{...maintenance,repairDecision}}}).eq("id",workspace.id).eq("user_id",user.id);
  if(updated.error)return NextResponse.json({error:"Could not save repair decision."},{status:500});
- await supabase.from("activity_logs").insert({run_id:run.id,event_type:"scentmarked.repair_decision",message:`Repair proposal ${decision}d for review only; no execution authorized.`,metadata:{userId:user.id,decision,proposal,recordedAt,executionAuthorized:false}});
+ await supabase.from("activity_logs").insert({run_id:run.id,event_type:"scentmarked.repair_decision",message:`Repair proposal ${decision}d for review only; no execution authorized.`,metadata:{userId:user.id,decision,proposal,recordedAt,executionAuthorized:false,executionStatus:"not_requested",approvalScope:"proposal_review_only"}});
  return NextResponse.json({ok:true,repairDecision});
 }
