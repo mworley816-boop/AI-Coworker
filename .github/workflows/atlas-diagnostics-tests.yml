@@ -17,6 +17,7 @@ on:
       - 'scripts/cloudflare-incident.test.mjs'
       - 'scripts/cloudflare-deployment-check.mjs'
       - 'scripts/cloudflare-deployment-check.test.mjs'
+      - 'supabase/migrations/**'
       - '.github/workflows/atlas-diagnostics-tests.yml'
   pull_request:
     paths:
