@@ -23,18 +23,17 @@ export function createIncidentRepository(supabase) {
       if (!incident || !incident.fingerprint || !incident.project || !incident.source) {
         throw new TypeError('Incident requires fingerprint, project and source');
       }
-      // Database upsert is atomic for the unique project/fingerprint pair.
-      // Occurrence increments and alert deduplication require a dedicated
-      // transactional RPC; do not claim they are guaranteed by this method.
+      // Atomic database function increments occurrences without read/write races.
       const allowed = [
         'project', 'fingerprint', 'source', 'environment', 'status', 'severity',
         'observed_evidence', 'recommendation', 'approval_required',
       ];
-      const payload = Object.fromEntries(allowed.filter((key) => incident[key] !== undefined)
-        .map((key) => [key, incident[key]]));
-      const { data, error } = await table().upsert(payload, { onConflict: 'project,fingerprint' }).select().single();
+      const args = Object.fromEntries(allowed.filter((key) => incident[key] !== undefined)
+        .map((key) => ['p_' + key, incident[key]]));
+      const { data, error } = await supabase.rpc('atlas_record_incident', args);
       if (error) throw error;
       return data;
+
     },
   };
 }
