@@ -22,7 +22,7 @@ test('pending status remains investigating', () => {
 
 test('successful deployment requires HTTP verification before outage closure', () => {
   const result = deploymentToIncident({ id: 'd4', environment: 'production', latest_stage: { status: 'success' } });
-  assert.equal(result.status, 'resolved');
+  assert.equal(result.status, 'deployment_succeeded');
   assert.match(result.recommendation, /Verify production HTTP health/);
 });
 
