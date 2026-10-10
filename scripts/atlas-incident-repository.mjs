@@ -4,9 +4,7 @@
  * Never import this module into a browser bundle.
  */
 export function createIncidentRepository(supabase) {
-  if (typeof supabase?.from !== 'function' || typeof supabase?.rpc !== 'function') {
-    throw new TypeError('Server-side Supabase client with from() and rpc() required');
-  }
+  if (typeof supabase?.from !== 'function') throw new TypeError('Supabase client required');
   const table = () => supabase.from('atlas_incidents');
 
   return {
@@ -25,6 +23,7 @@ export function createIncidentRepository(supabase) {
       if (!incident || !incident.fingerprint || !incident.project || !incident.source) {
         throw new TypeError('Incident requires fingerprint, project and source');
       }
+      if (typeof supabase.rpc !== 'function') throw new TypeError('Supabase RPC capability required');
       // Atomic database function increments occurrences without read/write races.
       const allowed = [
         'project', 'fingerprint', 'source', 'environment', 'status', 'severity',
