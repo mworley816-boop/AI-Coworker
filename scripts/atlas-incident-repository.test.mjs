@@ -41,3 +41,22 @@ test('record uses atomic RPC and excludes unrecognized fields', async () => {
   assert.equal(args.p_fingerprint, 'abc');
   assert.equal(args.p_arbitrary, undefined);
 });
+
+test('record fails clearly if the server client lacks RPC', async () => {
+  const repo = createIncidentRepository({ from: () => ({}) });
+  await assert.rejects(
+    repo.record({ project: 'scentmarked', fingerprint: 'f', source: 'cloudflare' }),
+    /RPC capability required/,
+  );
+});
+
+test('record surfaces database RPC errors', async () => {
+  const repo = createIncidentRepository({
+    from: () => ({}),
+    rpc: async () => ({ data: null, error: new Error('database unavailable') }),
+  });
+  await assert.rejects(
+    repo.record({ project: 'scentmarked', fingerprint: 'f', source: 'cloudflare' }),
+    /database unavailable/,
+  );
+});
