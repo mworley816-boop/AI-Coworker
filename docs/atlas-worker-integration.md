@@ -31,6 +31,19 @@ const fetchWithMaintenance = attachMaintenanceRoute(existingFetch, {
 // Do not replace the other event handlers or scheduled jobs.
 ```
 
+## Existing scheduled handler composition (illustrative, not deployed)
+
+```js
+import { attachScheduledHttpMaintenance } from './scripts/atlas-worker-scheduled-route.mjs';
+
+const scheduledWithMaintenance = attachScheduledHttpMaintenance(existingScheduled, {
+  repository: serverIncidentRepository,
+  healthUrl: trustedScentmarkedHealthUrl,
+});
+// Connect scheduledWithMaintenance to the EXISTING Worker scheduled entrypoint.
+// Do not add cron triggers without reviewing the current Worker configuration.
+```
+
 ## Staging acceptance checks
 - Anonymous GET to `/api/maintenance/dashboard` returns 403.
 - Authenticated non-admin GET returns 403.
@@ -44,7 +57,8 @@ const fetchWithMaintenance = attachMaintenanceRoute(existingFetch, {
 - Deploy to production only after tests, staging checks, and explicit approval.
 
 ## Known limitations
-- The repository's `record()` upsert does not atomically increment
-  `occurrences`; it also cannot guarantee alert deduplication across Workers.
+- Incident recording uses the server-side `atlas_record_incident` RPC to increment
+  `occurrences` atomically. Notification delivery and cross-Worker alert
+  deduplication are not yet implemented.
 - The dashboard summary covers the returned page, not every historical incident.
 - No production Worker integration or dashboard deployment is established here.
