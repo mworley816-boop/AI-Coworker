@@ -10,9 +10,10 @@ export function createMaintenanceDashboard(repository) {
       throw new TypeError('Invalid project');
     }
     const incidents = await repository.list({ project, limit });
+    if (!Array.isArray(incidents)) throw new TypeError('Invalid incident repository response');
     const counts = { critical: 0, warning: 0, informational: 0 };
     for (const incident of incidents) {
-      if (incident.status === 'confirmed' && Object.hasOwn(counts, incident.severity)) {
+      if (incident?.status === 'confirmed' && Object.hasOwn(counts, incident.severity)) {
         counts[incident.severity] += 1;
       }
     }
