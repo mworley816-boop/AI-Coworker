@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Atlas | Scentmarked Maintenance</title>
+  <style>
+    :root{color-scheme:dark;font:16px system-ui,sans-serif;background:#101625;color:#eef2ff}
+    body{max-width:1100px;margin:0 auto;padding:clamp(16px,4vw,48px)}
+    header{display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap}
+    h1{font-size:clamp(26px,4vw,40px);margin:8px 0}
+    .muted{color:#aeb9d2}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin:30px 0}
+    .card,.panel{background:#1a2438;border:1px solid #35435e;border-radius:16px;padding:20px}
+    .number{font-size:36px;font-weight:700}.badge{border-radius:999px;background:#34445f;padding:7px 12px}
+    table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:12px;border-bottom:1px solid #35435e}
+    .scroll{overflow-x:auto}button{border:0;border-radius:10px;background:#9bc3ff;color:#0d172a;padding:11px 16px;font-weight:700;cursor:pointer}
+    button:focus-visible{outline:3px solid #fff}#error{color:#ffb9b9}
+  </style>
+</head>
+<body>
+<header><div><div class="muted">ATLAS / MAINTENANCE</div><h1>Scentmarked health</h1><div class="muted">Incident history and recommended next steps</div></div><span class="badge" id="connection">Not connected</span></header>
+<div class="cards" aria-label="Incident summary">
+  <div class="card"><div class="muted">Critical incidents</div><div class="number" id="critical">—</div></div>
+  <div class="card"><div class="muted">Warnings</div><div class="number" id="warning">—</div></div>
+  <div class="card"><div class="muted">Displayed records</div><div class="number" id="displayed">—</div></div>
+</div>
+<section class="panel"><header><h2>Recent incidents</h2><button id="refresh" type="button">Refresh</button></header>
+<p class="muted" id="updated">Waiting for an authenticated Atlas API connection.</p><p role="alert" id="error"></p>
+<div class="scroll"><table><thead><tr><th>Status</th><th>Severity</th><th>Environment</th><th>Last seen</th><th>Recommendation</th></tr></thead><tbody id="rows"><tr><td colspan="5">No data loaded.</td></tr></tbody></table></div></section>
+<script type="module">
+  // Deploy only behind Atlas admin authentication. This page has no credentials.
+  // Endpoint is intentionally relative to the authenticated Atlas origin.
+  const endpoint = '/api/maintenance/dashboard?project=scentmarked';
+  const $ = (id) => document.getElementById(id);
+  const cell = (tr, value) => { const td=document.createElement('td');td.textContent=String(value ?? '—');tr.append(td); };
+  async function refresh() {
+    $('error').textContent='';
+    $('connection').textContent='Checking';
+    try {
+      const response=await fetch(endpoint,{credentials:'same-origin',cache:'no-store'});
+      if(!response.ok) throw new Error('Dashboard request failed (HTTP '+response.status+')');
+      const data=await response.json();
+      if(!Array.isArray(data.incidents)||!data.summary) throw new Error('Unexpected dashboard response');
+      $('critical').textContent=data.summary.confirmed_incidents_in_page?.critical ?? 0;
+      $('warning').textContent=data.summary.confirmed_incidents_in_page?.warning ?? 0;
+      $('displayed').textContent=data.summary.displayed ?? data.incidents.length;
+      $('updated').textContent='Updated '+new Date(data.fetched_at).toLocaleString();
+      $('rows').replaceChildren();
+      for(const incident of data.incidents){
+        const tr=document.createElement('tr');
+        for(const value of [incident.status,incident.severity,incident.environment,incident.last_seen_at,incident.recommendation]) cell(tr,value);
+        $('rows').append(tr);
+      }
+      if(!data.incidents.length){const tr=document.createElement('tr');const td=document.createElement('td');td.colSpan=5;td.textContent='No incidents returned.';tr.append(td);$('rows').append(tr);}
+      $('connection').textContent='Connected';
+    }catch(error){
+      $('connection').textContent='Not connected';
+      $('error').textContent=error.message;
+      $('rows').replaceChildren();
+      const tr=document.createElement('tr');const td=document.createElement('td');td.colSpan=5;td.textContent='Live data unavailable.';tr.append(td);$('rows').append(tr);
+    }
+  }
+  $('refresh').addEventListener('click',refresh);
+  refresh();
+</script>
+</body></html>
