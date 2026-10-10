@@ -4,7 +4,9 @@
  * Never import this module into a browser bundle.
  */
 export function createIncidentRepository(supabase) {
-  if (!supabase?.from) throw new TypeError('Supabase client required');
+  if (typeof supabase?.from !== 'function' || typeof supabase?.rpc !== 'function') {
+    throw new TypeError('Server-side Supabase client with from() and rpc() required');
+  }
   const table = () => supabase.from('atlas_incidents');
 
   return {
@@ -33,7 +35,6 @@ export function createIncidentRepository(supabase) {
       const { data, error } = await supabase.rpc('atlas_record_incident', args);
       if (error) throw error;
       return data;
-
     },
   };
 }
