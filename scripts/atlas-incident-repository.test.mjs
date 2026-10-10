@@ -25,16 +25,19 @@ test('record validates required incident fields', async () => {
   await assert.rejects(repo.record({ project: 'scentmarked' }), TypeError);
 });
 
-test('record uses project and fingerprint conflict target', async () => {
-  let payload, options;
-  const query = {
-    upsert: (p, o) => { payload = p; options = o; return query; },
-    select: () => query,
-    single: async () => ({ data: { id: 'saved' }, error: null }),
-  };
-  const repo = createIncidentRepository({ from: () => query });
-  const result = await repo.record({ project: 'scentmarked', fingerprint: 'abc', source: 'cloudflare_deployments', status: 'confirmed', severity: 'critical', arbitrary: 'ignore' });
-  assert.equal(result.id, 'saved');
-  assert.equal(options.onConflict, 'project,fingerprint');
-  assert.equal(payload.arbitrary, undefined);
+test('record uses atomic RPC and excludes unrecognized fields', async () => {
+  let name, args;
+  const repo = createIncidentRepository({
+    from: () => ({}),
+    rpc: async (n, a) => { name = n; args = a; return { data: { occurrences: 2 }, error: null }; },
+  });
+  const result = await repo.record({
+    project: 'scentmarked', fingerprint: 'abc', source: 'cloudflare_deployments',
+    status: 'confirmed', severity: 'critical', arbitrary: 'ignore',
+  });
+  assert.equal(result.occurrences, 2);
+  assert.equal(name, 'atlas_record_incident');
+  assert.equal(args.p_project, 'scentmarked');
+  assert.equal(args.p_fingerprint, 'abc');
+  assert.equal(args.p_arbitrary, undefined);
 });
