@@ -45,3 +45,10 @@ test('original scheduled handler failure is not swallowed', async () => {
 test('requires existing scheduled handler', () => {
   assert.throws(() => attachScheduledHttpMaintenance(null, options(async () => ({}))), TypeError);
 });
+
+test('scheduled maintenance errors are sanitized', async () => {
+  let received;
+  const handler = attachScheduledHttpMaintenance(async () => 'existing', options(async () => { throw new Error('private detail'); }), { onError: value => { received = value; } });
+  assert.equal(await handler({}, {}, {}), 'existing');
+  assert.deepEqual(received, { component: 'http_maintenance', reason: 'maintenance_failed' });
+});
