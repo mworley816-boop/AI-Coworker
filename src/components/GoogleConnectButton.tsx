@@ -1,0 +1,5 @@
+"use client";
+import {useState} from "react";
+type Provider="email"|"calendar"|"files";
+const labels:Record<Provider,string>={email:"Email",calendar:"Calendar",files:"Files"};
+export default function GoogleConnectButton({provider}:{provider:Provider}){const [busy,setBusy]=useState(false);const [error,setError]=useState("");async function connect(){setBusy(true);setError("");try{const response=await fetch("/api/connections/google/start",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({provider})});const data=await response.json() as {authorizeUrl?:string;error?:string};if(!response.ok||!data.authorizeUrl)throw new Error(data.error??"Could not start Google connection");window.location.assign(data.authorizeUrl);}catch(error){setError(error instanceof Error?error.message:"Could not start Google connection");setBusy(false);}}return <div><button type="button" onClick={connect} disabled={busy}>{busy?"Connecting…":"Connect "+labels[provider]}</button>{error?<p role="alert">{error}</p>:null}</div>;}

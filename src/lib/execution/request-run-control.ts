@@ -1,0 +1,2 @@
+export type RunControlAction="pause"|"resume"|"cancel"|"retry";
+export async function requestRunControl(runId:string,action:RunControlAction){const response=await fetch("/api/runs/control",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({runId,action})});const result=await response.json() as {ok?:boolean;reason?:string;runId?:string;action?:RunControlAction};if(!response.ok||!result.ok)throw new Error(result.reason||"Run control request failed");return result;}

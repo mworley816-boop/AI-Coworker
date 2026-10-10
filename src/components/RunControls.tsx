@@ -1,0 +1,4 @@
+"use client";
+import {useState} from "react";
+import {requestRunExecution} from "@/lib/execution/request-run";
+export default function RunControls({runId,onChanged}:{runId:string;onChanged?:()=>void}){const [state,setState]=useState("");async function start(){setState("Atlas is working…");try{const result=await requestRunExecution(runId);if(!result.ok)setState(result.reason||"Unable to start");else if(result.status==="waiting_approval")setState("Paused for approval");else if(result.status==="cancelled")setState("Run cancelled");else setState("Run completed");onChanged?.();}catch{setState("Run failed. Check the activity log.");onChanged?.();}}return <div className="run-controls"><button onClick={start}>Start run</button>{state&&<small>{state}</small>}</div>}
