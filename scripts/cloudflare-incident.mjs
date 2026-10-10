@@ -1,12 +1,12 @@
 /**
  * Pure adapter for Atlas's Cloudflare Pages deployment diagnostics.
- * Never treats missing data or an in-progress deployment as a confirmed outage.
+ * Deployment success does not prove site recovery; HTTP verification is separate.
  */
 export function deploymentToIncident(deployment, project = 'scentmarked') {
   if (!deployment || typeof deployment !== 'object') throw new TypeError('deployment required');
   const stage = deployment.latest_stage ?? {};
   const rawStatus = stage.status ?? 'unknown';
-  const status = rawStatus === 'failure' ? 'confirmed' : rawStatus === 'success' ? 'resolved' : 'investigating';
+  const status = rawStatus === 'failure' ? 'confirmed' : rawStatus === 'success' ? 'deployment_succeeded' : 'investigating';
   const id = String(deployment.id ?? 'unknown');
   const environment = deployment.environment ?? 'unknown';
   const commit = deployment.deployment_trigger?.metadata?.commit_hash ?? null;
