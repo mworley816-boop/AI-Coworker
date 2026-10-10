@@ -3,6 +3,8 @@ name: Atlas diagnostic unit tests
 on:
   push:
     paths:
+      - 'scripts/atlas-http-health-incident.mjs'
+      - 'scripts/atlas-http-health-incident.test.mjs'
       - 'scripts/atlas-http-health.mjs'
       - 'scripts/atlas-http-health.test.mjs'
       - 'scripts/atlas-worker-maintenance-route.mjs'
@@ -40,4 +42,4 @@ jobs:
         with:
           node-version: '22'
       - name: Run read-only diagnostic unit tests
-        run: node --test scripts/cloudflare-incident.test.mjs scripts/cloudflare-deployment-check.test.mjs scripts/incident-history.test.mjs scripts/atlas-incident-repository.test.mjs scripts/atlas-maintenance-dashboard.test.mjs scripts/atlas-maintenance-api.test.mjs scripts/atlas-worker-maintenance-route.test.mjs scripts/atlas-http-health.test.mjs
+        run: node --test scripts/cloudflare-incident.test.mjs scripts/cloudflare-deployment-check.test.mjs scripts/incident-history.test.mjs scripts/atlas-incident-repository.test.mjs scripts/atlas-maintenance-dashboard.test.mjs scripts/atlas-maintenance-api.test.mjs scripts/atlas-worker-maintenance-route.test.mjs scripts/atlas-http-health.test.mjs scripts/atlas-http-health-incident.test.mjs
