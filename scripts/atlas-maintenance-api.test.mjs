@@ -43,3 +43,40 @@ test('blocks non-GET methods', async () => {
   const api = createMaintenanceApi({ supabase: mockSupabase(), authorizeAdmin: async () => true });
   assert.equal((await api(request('/api/maintenance/dashboard', 'POST'))).status, 405);
 });
+
+test('does not query incident data before administrator authorization', async () => {
+  let queried = false;
+  const api = createMaintenanceApi({
+    supabase: { from: () => { queried = true; throw new Error('must not query'); } },
+    authorizeAdmin: async () => false,
+  });
+  assert.equal((await api(request())).status, 403);
+  assert.equal(queried, false);
+});
+
+test('fails closed when administrator authorization throws', async () => {
+  const api = createMaintenanceApi({
+    supabase: mockSupabase(),
+    authorizeAdmin: async () => { throw new Error('private auth details'); },
+  });
+  const response = await api(request());
+  assert.equal(response.status, 503);
+  assert.doesNotMatch(await response.text(), /private auth details/);
+});
+
+test('hides database errors from the browser', async () => {
+  const q = {
+    select: () => q,
+    eq: () => q,
+    order: () => q,
+    limit: async () => ({ data: null, error: new Error('secret database detail') }),
+  };
+  const api = createMaintenanceApi({
+    supabase: { from: () => q },
+    authorizeAdmin: async () => true,
+  });
+  const response = await api(request());
+  assert.equal(response.status, 503);
+  assert.equal(response.headers.get('cache-control'), 'no-store');
+  assert.doesNotMatch(await response.text(), /secret database detail/);
+});
