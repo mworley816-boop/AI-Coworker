@@ -16,7 +16,7 @@ export function attachScheduledHttpMaintenance(existingScheduled, options, { onE
     const maintenance = Promise.resolve().then(check);
     const [oldResult, healthResult] = await Promise.allSettled([existing, maintenance]);
     if (healthResult.status === 'rejected') {
-      try { onError(healthResult.reason); } catch { /* preserve original job outcome */ }
+      try { onError({ component: 'http_maintenance', reason: 'maintenance_failed' }); } catch { /* preserve original job outcome */ }
     }
     if (oldResult.status === 'rejected') throw oldResult.reason;
     return oldResult.value;
