@@ -25,3 +25,13 @@ test("disabled GitHub monitoring is not misclassified as a failure",()=>{
  assert.equal(findings[0].category,"healthy");
  assert.match(findings[0].summary,/disabled/);
 });
+
+test("each diagnostic finding includes safe, actionable investigation steps",()=>{
+ for(const github of ["healthy","failed","unavailable","disabled"] as const){
+  const findings=classify({websiteHealthy:false,websiteFailureStreak:3,github});
+  for(const finding of findings){
+   assert.ok(finding.investigationSteps.length>0);
+   assert.ok(finding.investigationSteps.every(step=>typeof step==="string"&&step.length>5));
+  }
+ }
+});
