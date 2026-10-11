@@ -38,9 +38,9 @@
     $('connection').textContent='Checking';
     try {
       const response=await fetch(endpoint,{credentials:'same-origin',cache:'no-store'});
-      if(!response.ok) throw new Error('Dashboard request failed (HTTP '+response.status+')');
+      if(!response.ok) { const state = response.status === 401 || response.status === 403 ? 'Authorization required' : response.status === 429 ? 'Temporarily rate limited' : 'Dashboard unavailable'; throw new Error(state+' (HTTP '+response.status+')'); }
       const data=await response.json();
-      if(!Array.isArray(data.incidents)||!data.summary) throw new Error('Unexpected dashboard response');
+      if(!Array.isArray(data.incidents)||!data.summary || !data.fetched_at) throw new Error('Unexpected dashboard response');
       $('critical').textContent=data.summary.confirmed_incidents_in_page?.critical ?? 0;
       $('warning').textContent=data.summary.confirmed_incidents_in_page?.warning ?? 0;
       $('displayed').textContent=data.summary.displayed ?? data.incidents.length;
@@ -52,10 +52,12 @@
         $('rows').append(tr);
       }
       if(!data.incidents.length){const tr=document.createElement('tr');const td=document.createElement('td');td.colSpan=5;td.textContent='No incidents returned.';tr.append(td);$('rows').append(tr);}
-      $('connection').textContent='Connected';
+      $('connection').textContent='Dashboard API connected';
     }catch(error){
-      $('connection').textContent='Not connected';
-      $('error').textContent=error.message;
+      $('connection').textContent='Dashboard unavailable';
+      for(const id of ['critical','warning','displayed']) $(id).textContent='—';
+      $('updated').textContent='No current incident data available.';
+      $('error').textContent=error instanceof Error ? error.message : 'Unknown dashboard failure';
       $('rows').replaceChildren();
       const tr=document.createElement('tr');const td=document.createElement('td');td.colSpan=5;td.textContent='Live data unavailable.';tr.append(td);$('rows').append(tr);
     }
