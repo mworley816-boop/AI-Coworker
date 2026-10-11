@@ -1,0 +1,12 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { classifyBuildFailure as classify } from './atlas-build-failure-classifier.mjs';
+test('successful build is healthy',()=>assert.equal(classify({conclusion:'success'}).status,'healthy'));
+test('TypeScript error',()=>assert.equal(classify({conclusion:'failure',log:'error TS7022: implicit any'}).category,'typescript'));
+test('missing module',()=>assert.equal(classify({conclusion:'failure',log:'Cannot find module xyz'}).category,'missing_dependency'));
+test('auth failure',()=>assert.equal(classify({conclusion:'failure',log:'401 Unauthorized'}).category,'authentication'));
+test('missing environment',()=>assert.equal(classify({conclusion:'failure',log:'Missing required environment variable'}).category,'environment'));
+test('failed tests',()=>assert.equal(classify({conclusion:'failure',log:'not ok 1'}).category,'tests'));
+test('unknown failure requires approval',()=>assert.equal(classify({conclusion:'failure',log:'unexpected'}).approval_required,true));
+test('incomplete run remains unverified',()=>assert.equal(classify({conclusion:'in_progress'}).status,'unverified'));
+test('reject non-text log',()=>assert.throws(()=>classify({log:{}}),TypeError));
