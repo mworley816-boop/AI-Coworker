@@ -49,6 +49,7 @@ export function summarizeWorkflowIncidents(incidents: WorkflowIncident[]) {
     id: "github_actions" as const,
     label: "Scentmarked GitHub Actions",
     status: failedRuns > 0 ? "warning" as const : "healthy" as const,
+    incidents: incidents.map(({runId,workflow,url,jobs})=>({runId,workflow,url,jobs})),
     detail: failedRuns > 0
       ? `${failedRuns} failed workflow run(s) detected. Review before any repair.`
       : "No failed workflow runs returned by the current GitHub query.",
