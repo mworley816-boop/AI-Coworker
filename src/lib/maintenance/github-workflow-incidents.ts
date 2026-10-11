@@ -41,3 +41,16 @@ export async function inspectFailedScentmarkedRuns({
   }
   return incidents;
 }
+
+/** Convert read-only diagnostics into a sanitized maintenance status. */
+export function summarizeWorkflowIncidents(incidents: WorkflowIncident[]) {
+  const failedRuns = incidents.length;
+  return {
+    id: "github_actions" as const,
+    label: "Scentmarked GitHub Actions",
+    status: failedRuns > 0 ? "warning" as const : "healthy" as const,
+    detail: failedRuns > 0
+      ? `${failedRuns} failed workflow run(s) detected. Review before any repair.`
+      : "No failed workflow runs returned by the current GitHub query.",
+  };
+}
