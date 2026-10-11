@@ -3,6 +3,7 @@ import {createServiceSupabaseClient} from "@/lib/supabase/service";
 import {runtimeEnv} from "@/lib/runtime-env";
 import {inspectFailedScentmarkedRuns,summarizeWorkflowIncidents} from "@/lib/maintenance/github-workflow-incidents";
 import {classifyScentmarkedDiagnostics} from "@/lib/maintenance/diagnostic-classification";
+import {appendDiagnosticSnapshot} from "@/lib/maintenance/diagnostic-history";
 
 type WebsiteEvent={type:"outage"|"recovery";at:string;detail:string};
 export async function POST(request:NextRequest){
@@ -46,7 +47,8 @@ export async function POST(request:NextRequest){
   const checks=[...(prior.checks??[]).filter(c=>c.id!=="website"&&c.id!=="github_actions"),{id:"website",label:"Scentmarked website",status,detail:status==="warning"?`${detail} Consecutive failures: ${streak}.`:detail}];
   if(githubCheck)checks.push(githubCheck);
   const diagnostics=classifyScentmarkedDiagnostics({websiteHealthy:status==="healthy",websiteFailureStreak:streak,github:githubState});
-  const maintenance={...prior,checks,diagnostics,checkedAt:now,lastScheduledCheck:now,websiteFailureStreak:streak,websiteEvents:events};
+  const diagnosticHistory=appendDiagnosticSnapshot((prior as {diagnosticHistory?:unknown}).diagnosticHistory,now,diagnostics);
+  const maintenance={...prior,checks,diagnostics,diagnosticHistory,checkedAt:now,lastScheduledCheck:now,websiteFailureStreak:streak,websiteEvents:events};
   const health=checks.every(c=>c.status==="healthy")?"healthy":"attention";
   const {error:updateError}=await supabase.from("workspaces").update({resources:{...resources,maintenance},health,last_checked_at:now,updated_at:now}).eq("id",workspace.id).eq("user_id",workspace.user_id);
   results.push({workspaceId:workspace.id,ok:!updateError,websiteStatus:status,repeatedOutage:streak>=3,newOutage:!updateError&&streak===3,recovered:!updateError&&status==="healthy"&&previousStreak>=3});
