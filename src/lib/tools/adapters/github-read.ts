@@ -29,13 +29,16 @@ export const githubReadAdapter:ToolAdapter={
   catch{return failure("GitHub credential could not be decrypted");}
   const [owner,name]=repository.split("/");
   const path=resource.split("/").map(encodeURIComponent).join("/");
-  const url=`https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/contents/${path}`;
+  // Investigation plans use "main" as a branch identifier, not a file path.
+  const branchResource=resource==="main"||resource==="master";
+  const base=`https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}`;
+  const url=branchResource?`${base}/branches/${encodeURIComponent(resource)}`:`${base}/contents/${path}`;
   let response:Response;
-  try{response=await fetch(url,{headers:{accept:"application/vnd.github.raw+json",authorization:`Bearer ${token}`,"x-github-api-version":"2022-11-28","user-agent":"Atlas-AI-Coworker"},signal:AbortSignal.timeout(15000),cache:"no-store"});}
+  try{response=await fetch(url,{headers:{accept:branchResource?"application/vnd.github+json":"application/vnd.github.raw+json",authorization:`Bearer ${token}`,"x-github-api-version":"2022-11-28","user-agent":"Atlas-AI-Coworker"},signal:AbortSignal.timeout(15000),cache:"no-store"});}
   catch{return failure("GitHub file request failed");}
-  if(!response.ok)return failure(response.status===404?"Repository file not found or inaccessible":`GitHub returned HTTP ${response.status}`);
+  if(!response.ok)return failure(response.status===404?(branchResource?"Repository branch not found or inaccessible":"Repository file not found or inaccessible"):`GitHub returned HTTP ${response.status}`);
   const text=await response.text();
   if(!text.trim())return failure("GitHub returned an empty file");
-  return {ok:true,toolId,message:"GitHub repository file read successfully.",data:{repository,resource,content:text.slice(0,24000),truncated:text.length>24000}};
+  return {ok:true,toolId,message:branchResource?"GitHub repository branch inspected successfully.":"GitHub repository file read successfully.",data:{repository,resource,content:text.slice(0,24000),truncated:text.length>24000}};
  }
 };
