@@ -1,5 +1,6 @@
 import {decryptCredential} from "@/lib/connections/crypto";
 import {runtimeEnv} from "@/lib/runtime-env";
+import {createServiceSupabaseClient} from "@/lib/supabase/service";
 import type {ToolAdapter,ToolExecutionResult} from "@/lib/tools/executor";
 
 const toolId="github.read";
@@ -18,7 +19,10 @@ export const githubReadAdapter:ToolAdapter={
   if(ownerError||!coworker?.user_id)return failure("Coworker owner could not be verified");
   const {data:connection,error:connectionError}=await context.supabase.from("connections").select("id").eq("user_id",coworker.user_id).eq("provider","github").eq("status","connected").order("connected_at",{ascending:false}).limit(1).maybeSingle();
   if(connectionError||!connection?.id)return failure("Connect GitHub before reading repositories");
-  const {data:credential,error:credentialError}=await context.supabase.from("connection_credentials").select("ciphertext,iv,auth_tag,key_version").eq("connection_id",connection.id).maybeSingle();
+  // Credentials have no user-facing SELECT policy; access them only through the server-side service client.
+  const service=await createServiceSupabaseClient();
+  if(!service)return failure("GitHub credential service is not configured");
+  const {data:credential,error:credentialError}=await service.from("connection_credentials").select("ciphertext,iv,auth_tag,key_version").eq("connection_id",connection.id).maybeSingle();
   if(credentialError||!credential)return failure("GitHub credential is unavailable");
   let token:string;
   try{token=decryptCredential({ciphertext:credential.ciphertext,iv:credential.iv,authTag:credential.auth_tag,keyVersion:credential.key_version},env.CONNECTION_ENCRYPTION_KEY);}
