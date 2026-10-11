@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import {test} from "node:test";
-import {inspectFailedScentmarkedRuns,summarizeWorkflowIncidents} from "./github-workflow-incidents";
+import {inspectFailedScentmarkedRuns,summarizeWorkflowIncidents} from "./github-workflow-incidents.ts";
 
 function fakeResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {status, headers: {"content-type": "application/json"}});
