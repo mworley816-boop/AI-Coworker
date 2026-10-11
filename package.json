@@ -10,7 +10,7 @@
     "check": "npm run typecheck && npm run build",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
-    "test:maintenance": "node --experimental-strip-types --test src/lib/maintenance/github-workflow-incidents.test.ts"
+    "test:maintenance": "node --experimental-strip-types --test src/lib/maintenance/*.test.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.7.0",
