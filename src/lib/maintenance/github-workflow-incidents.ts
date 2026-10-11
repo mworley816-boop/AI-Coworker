@@ -21,7 +21,15 @@ export async function inspectFailedScentmarkedRuns({
   }
   const runsPayload = await request(`${base}/actions/runs?per_page=100`) as {workflow_runs?: unknown};
   if (!Array.isArray(runsPayload?.workflow_runs)) throw new Error("Invalid GitHub workflow response");
-  // Consider only the latest completed run of each workflow; historical failures that\n  // were superseded by a successful run must not keep Atlas in a warning state.\n  const latestCompleted = new Map<string, Record<string, unknown>>();\n  for (const run of runsPayload.workflow_runs as Array<Record<string, unknown>>) {\n    if (run.status !== "completed" || typeof run.name !== "string") continue;\n    if (!latestCompleted.has(run.name)) latestCompleted.set(run.name, run);\n  }\n  const incidents: WorkflowIncident[] = [];\n  for (const run of [...latestCompleted.values()].filter(run=>run.conclusion==="failure").slice(0,maxRuns)) {
+  // Consider only the latest completed run of each workflow; historical failures that
+  // were superseded by a successful run must not keep Atlas in a warning state.
+  const latestCompleted = new Map<string, Record<string, unknown>>();
+  for (const run of runsPayload.workflow_runs as Array<Record<string, unknown>>) {
+    if (run.status !== "completed" || typeof run.name !== "string") continue;
+    if (!latestCompleted.has(run.name)) latestCompleted.set(run.name, run);
+  }
+  const incidents: WorkflowIncident[] = [];
+  for (const run of [...latestCompleted.values()].filter(run=>run.conclusion==="failure").slice(0,maxRuns)) {
     if (run.conclusion !== "failure" || !Number.isSafeInteger(run.id) || Number(run.id) < 1) continue;
     const runId = Number(run.id);
     const jobsPayload = await request(`${base}/actions/runs/${runId}/jobs?per_page=100`) as {jobs?: unknown};
