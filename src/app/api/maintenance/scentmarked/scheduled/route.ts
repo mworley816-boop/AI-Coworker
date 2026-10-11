@@ -2,6 +2,7 @@ import {NextRequest,NextResponse} from "next/server";
 import {createServiceSupabaseClient} from "@/lib/supabase/service";
 import {runtimeEnv} from "@/lib/runtime-env";
 import {inspectFailedScentmarkedRuns,summarizeWorkflowIncidents} from "@/lib/maintenance/github-workflow-incidents";
+import {classifyScentmarkedDiagnostics} from "@/lib/maintenance/diagnostic-classification";
 
 type WebsiteEvent={type:"outage"|"recovery";at:string;detail:string};
 export async function POST(request:NextRequest){
@@ -16,9 +17,11 @@ export async function POST(request:NextRequest){
  if(!workspaces?.length)return NextResponse.json({error:"No Scentmarked workspaces were found; no website checks ran.",checked:0,results:[]},{status:503});
  const githubToken=env.ATLAS_GITHUB_ACTIONS_READ_TOKEN;
  let githubCheck:{id:string;label:string;status:string;detail:string}|null=null;
+ let githubState:"healthy"|"failed"|"unavailable"|"disabled"=githubToken?"unavailable":"disabled";
  if(githubToken){
   try{
    githubCheck=summarizeWorkflowIncidents(await inspectFailedScentmarkedRuns({owner:"mworley816-boop",repo:"Scentmarked-",token:githubToken}));
+   githubState=githubCheck.status==="warning"?"failed":"healthy";
   }catch{
    githubCheck={id:"github_actions",label:"Scentmarked GitHub Actions",status:"warning",detail:"GitHub diagnostics unavailable; website monitoring continues."};
   }
@@ -42,7 +45,8 @@ export async function POST(request:NextRequest){
   if(status==="healthy"&&previousStreak>=3)events.push({type:"recovery",at:now,detail});
   const checks=[...(prior.checks??[]).filter(c=>c.id!=="website"&&c.id!=="github_actions"),{id:"website",label:"Scentmarked website",status,detail:status==="warning"?`${detail} Consecutive failures: ${streak}.`:detail}];
   if(githubCheck)checks.push(githubCheck);
-  const maintenance={...prior,checks,checkedAt:now,lastScheduledCheck:now,websiteFailureStreak:streak,websiteEvents:events};
+  const diagnostics=classifyScentmarkedDiagnostics({websiteHealthy:status==="healthy",websiteFailureStreak:streak,github:githubState});
+  const maintenance={...prior,checks,diagnostics,checkedAt:now,lastScheduledCheck:now,websiteFailureStreak:streak,websiteEvents:events};
   const health=checks.every(c=>c.status==="healthy")?"healthy":"attention";
   const {error:updateError}=await supabase.from("workspaces").update({resources:{...resources,maintenance},health,last_checked_at:now,updated_at:now}).eq("id",workspace.id).eq("user_id",workspace.user_id);
   results.push({workspaceId:workspace.id,ok:!updateError,websiteStatus:status,repeatedOutage:streak>=3,newOutage:!updateError&&streak===3,recovered:!updateError&&status==="healthy"&&previousStreak>=3});
