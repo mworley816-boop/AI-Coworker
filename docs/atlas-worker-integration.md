@@ -62,3 +62,35 @@ const scheduledWithMaintenance = attachScheduledHttpMaintenance(existingSchedule
   deduplication are not yet implemented.
 - The dashboard summary covers the returned page, not every historical incident.
 - No production Worker integration or dashboard deployment is established here.
+
+## GitHub Actions incident synchronization (illustrative, not deployed)
+
+The read-only diagnostic adapter is implemented in
+`scripts/atlas-scheduled-workflow-incidents.mjs`. It requires the **real**
+Scentmarked GitHub owner/repository, a server-side GitHub token with Actions
+read permission, and an AI-Coworker Supabase incident repository. Never reuse
+a Cloudflare deployment token as a GitHub token.
+
+```js
+import { attachScheduledWorkflowIncidentSync } from './scripts/atlas-scheduled-workflow-incidents.mjs';
+
+const scheduledWithGitHubDiagnostics = attachScheduledWorkflowIncidentSync(
+  existingScheduled,
+  {
+    owner: verifiedScentmarkedGitHubOwner,
+    repo: verifiedScentmarkedGitHubRepo,
+    token: serverSideGitHubReadToken,
+    repository: serverIncidentRepository,
+  },
+  { onError: ({ component, reason }) => logSafeMaintenanceFailure(component, reason) },
+);
+// Connect to the real existing scheduled handler after reviewing its code.
+```
+
+The adapter only records failed runs and jobs. It does not download logs,
+create pull requests, push commits, modify secrets, or trigger deployments.
+Ensure cron frequency and incident deduplication are reviewed before activation.
+The incident dashboard already reads the same `atlas_incidents` repository;
+verify that a test incident is visible to an authorized administrator only.
+Do not activate this adapter until the real Worker source and credentials
+have been identified and staging access controls have passed.
