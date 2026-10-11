@@ -6,6 +6,7 @@ export default function GraphicQueueDashboard(){
  const [perfumeId,setPerfumeId]=useState("");const [brand,setBrand]=useState("");const [name,setName]=useState("");const [format,setFormat]=useState<"product-card"|"editorial-banner">("product-card");
  const [readiness,setReadiness]=useState<Readiness|null>(null);const [readinessError,setReadinessError]=useState("");
  const [running,setRunning]=useState(false);
+ const [reviewBusy,setReviewBusy]=useState(false);const [identityVerified,setIdentityVerified]=useState(false);const [rightsCleared,setRightsCleared]=useState(false);
  const [preview,setPreview]=useState<{jobId:string;url:string}|null>(null);const [previewBusy,setPreviewBusy]=useState<string|null>(null);
  const [jobs,setJobs]=useState<Job[]>([]);const [message,setMessage]=useState("");const [busy,setBusy]=useState(false);
  async function refresh(){try{const r=await fetch("/api/scentmarked-content/graphic-jobs",{cache:"no-store"});const x=await r.json();if(!r.ok)throw Error(x.error??"Unable to load jobs");setJobs(x.jobs??[])}catch(e){setMessage(e instanceof Error?e.message:"Unable to load jobs")}}
@@ -29,9 +30,23 @@ export default function GraphicQueueDashboard(){
    const r=await fetch("/api/scentmarked-content/graphics/preview?id="+encodeURIComponent(jobId),{cache:"no-store"});
    const x=await r.json();
    if(!r.ok||!x.ok)throw Error(x.error??"Preview unavailable");
-   setPreview({jobId,url:x.url});
+   setPreview({jobId,url:x.url});setIdentityVerified(false);setRightsCleared(false);
   }catch(e){setMessage(e instanceof Error?e.message:"Preview unavailable")}
   finally{setPreviewBusy(null)}
+ }
+ async function review(decision:"approve"|"reject"){
+  if(!preview||reviewBusy)return;
+  if(decision==="approve"&&(!identityVerified||!rightsCleared))return;
+  if(!window.confirm(decision==="approve"?"Approve this artwork for later publishing review? This will NOT publish it.":"Reject this artwork and hold the job?"))return;
+  setReviewBusy(true);setMessage("");
+  try{
+   const r=await fetch("/api/scentmarked-content/graphics/review",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({id:preview.jobId,decision,identityVerified:decision==="approve"&&identityVerified,rightsCleared:decision==="approve"&&rightsCleared})});
+   const x=await r.json();
+   if(!r.ok||!x.ok)throw Error(x.error??"Review failed");
+   setMessage("Artwork review saved: "+x.status+". No image was published.");
+   setPreview(null);setIdentityVerified(false);setRightsCleared(false);await refresh();
+  }catch(e){setMessage(e instanceof Error?e.message:"Review failed")}
+  finally{setReviewBusy(false)}
  }
  async function submit(e:React.FormEvent){e.preventDefault();setBusy(true);setMessage("");try{const r=await fetch("/api/scentmarked-content/graphic-jobs",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({jobs:[{perfumeId,brand,perfumeName:name,format}]})});const x=await r.json();if(!r.ok||!x.ok)throw Error(x.reason??x.error??"Unable to queue job");setMessage("Queued "+x.queued+" graphic job(s). Generation is not started automatically.");setPerfumeId("");setBrand("");setName("");await refresh()}catch(e){setMessage(e instanceof Error?e.message:"Unable to queue job")}finally{setBusy(false)}}
  return <section style={{maxWidth:850,margin:"2rem auto",padding:"1rem"}}>
@@ -47,6 +62,6 @@ export default function GraphicQueueDashboard(){
   <p role="status" aria-live="polite">{message}</p>
   <h2>Recent jobs</h2><button type="button" onClick={()=>void refresh()}>Refresh jobs</button>
   {jobs.length===0?<p>No jobs available.</p>:<ul>{jobs.map(j=><li key={j.id}><strong>{j.brand} {j.perfume_name}</strong> — {j.graphic_format} — {j.status}{j.error_code?" ("+j.error_code+")":""} {["generated","approved","uploaded"].includes(j.status)&&<button type="button" disabled={previewBusy===j.id} onClick={()=>void openPreview(j.id)}>{previewBusy===j.id?"Loading preview…":"View private preview"}</button>}</li>)}</ul>}
-  {preview&&<section aria-label="Private artwork preview"><h2>Private artwork preview</h2><p>Temporary access expires after 60 seconds. This image is not published.</p><img src={preview.url} alt="Generated fragrance artwork awaiting review" style={{maxWidth:"100%",maxHeight:500,objectFit:"contain"}}/><p><button type="button" onClick={()=>setPreview(null)}>Close preview</button></p></section>}
+  {preview&&<section aria-label="Private artwork preview"><h2>Private artwork preview</h2><p>Temporary access expires after 60 seconds. This image is not published.</p><img src={preview.url} alt="Generated fragrance artwork awaiting review" style={{maxWidth:"100%",maxHeight:500,objectFit:"contain"}}/>{jobs.find(j=>j.id===preview.jobId)?.status==="generated"&&<div style={{display:"grid",gap:8,maxWidth:520}}><label><input type="checkbox" checked={identityVerified} onChange={e=>setIdentityVerified(e.target.checked)}/> I verified the perfume identity and artwork representation.</label><label><input type="checkbox" checked={rightsCleared} onChange={e=>setRightsCleared(e.target.checked)}/> I verified usage rights for this artwork.</label><div><button type="button" disabled={reviewBusy||!identityVerified||!rightsCleared} onClick={()=>void review("approve")}>Approve for later publishing review</button> <button type="button" disabled={reviewBusy} onClick={()=>void review("reject")}>Reject artwork</button></div><p>Approval records a review decision only. Nothing is published automatically.</p></div>}<p><button type="button" onClick={()=>{setPreview(null);setIdentityVerified(false);setRightsCleared(false)}}>Close preview</button></p></section>}
  </section>;
 }
