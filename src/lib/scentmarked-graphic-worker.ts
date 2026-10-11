@@ -1,5 +1,6 @@
 import type {SupabaseClient} from "@supabase/supabase-js";
 import {generateScentmarkedGraphic,type GeneratedGraphic} from "./scentmarked-image-generation-provider";
+import {persistGeneratedGraphic} from "./scentmarked-graphic-artifact-storage";
 
 /** A single bounded worker iteration. Requires a privileged Atlas Supabase client. */
 export async function processNextScentmarkedGraphicJob(
@@ -17,11 +18,11 @@ export async function processNextScentmarkedGraphicJob(
  if(!claimed)return {ok:true,status:"JOB_ALREADY_CLAIMED"};
  try{
   const graphic=await generate({jobId:job.id,prompt:job.prompt},{enabled:true,apiKey:config.apiKey,model:config.model});
-  // Bytes intentionally returned to caller, not persisted in DB or uploaded.
-  // Do not mark generated until an authenticated artifact store persists the output.
-  const {error}=await client.from("scentmarked_graphic_jobs").update({status:"held",generation_job_id:graphic.providerJobId,error_code:"AWAITING_ARTIFACT_STORAGE",updated_at:new Date().toISOString()}).eq("id",job.id).eq("status","generating");
+  const stored=await persistGeneratedGraphic(client,job.id,graphic);
+  if(!stored.ok){await client.from("scentmarked_graphic_jobs").update({status:"held",error_code:stored.reason??"ARTIFACT_STORAGE_FAILED",updated_at:new Date().toISOString()}).eq("id",job.id).eq("status","generating");return {ok:false,status:stored.reason??"ARTIFACT_STORAGE_FAILED",jobId:job.id};}
+  const {error}=await client.from("scentmarked_graphic_jobs").update({status:"generated",generation_job_id:graphic.providerJobId,output_storage_path:stored.path,error_code:null,updated_at:new Date().toISOString()}).eq("id",job.id).eq("status","generating");
   if(error)return {ok:false,status:"RESULT_RECORD_FAILED",jobId:job.id};
-  return {ok:true,status:"AWAITING_ARTIFACT_STORAGE",jobId:job.id,graphic};
+  return {ok:true,status:"GENERATED_PRIVATE_ARTIFACT",jobId:job.id};
  }catch{
   await client.from("scentmarked_graphic_jobs").update({status:"failed",error_code:"GENERATION_FAILED",updated_at:new Date().toISOString()}).eq("id",job.id).eq("status","generating");
   return {ok:false,status:"GENERATION_FAILED",jobId:job.id};
