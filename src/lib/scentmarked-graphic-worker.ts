@@ -15,7 +15,11 @@ export async function processNextScentmarkedGraphicJob(
  // Fail before claiming a job or spending provider credits if private storage is unavailable.
  const {data:bucket,error:bucketError}=await client.storage.getBucket(ATLAS_GRAPHIC_ARTIFACT_BUCKET);
  if(bucketError||!bucket||bucket.public!==false)return {ok:false,status:"PRIVATE_STORAGE_NOT_READY"};
- // Reserve one daily attempt atomically before claiming a job or calling the paid provider. Reservations are never automatically refunded.\n const {data:quotaReserved,error:quotaError}=await client.rpc("atlas_reserve_graphic_daily_quota",{p_day:new Date().toISOString().slice(0,10),p_count:1,p_limit:5});\n if(quotaError)return {ok:false,status:"DAILY_QUOTA_UNAVAILABLE"};\n if(quotaReserved!==true)return {ok:false,status:"DAILY_QUOTA_EXCEEDED"};\n // Atomic compare-and-swap prevents two workers claiming the same queued job.
+ // Reserve one daily attempt atomically before claiming a job or calling the paid provider. Reservations are never automatically refunded.
+ const {data:quotaReserved,error:quotaError}=await client.rpc("atlas_reserve_graphic_daily_quota",{p_day:new Date().toISOString().slice(0,10),p_count:1,p_limit:5});
+ if(quotaError)return {ok:false,status:"DAILY_QUOTA_UNAVAILABLE"};
+ if(quotaReserved!==true)return {ok:false,status:"DAILY_QUOTA_EXCEEDED"};
+ // Atomic compare-and-swap prevents two workers claiming the same queued job.
  const {data:claimed,error:claimError}=await client.from("scentmarked_graphic_jobs").update({status:"generating",updated_at:new Date().toISOString()}).eq("id",job.id).eq("status","queued").select("id").maybeSingle();
  if(claimError)return {ok:false,status:"CLAIM_FAILED"};
  if(!claimed)return {ok:true,status:"JOB_ALREADY_CLAIMED"};
