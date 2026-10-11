@@ -37,6 +37,7 @@ jobs:
           FILES_API_KEY: ${{ secrets.FILES_API_KEY }}
           GITHUB_READ_API_URL: ${{ secrets.GITHUB_READ_API_URL }}
           GITHUB_READ_API_KEY: ${{ secrets.GITHUB_READ_API_KEY }}
+          ATLAS_GITHUB_ACTIONS_READ_TOKEN: ${{ secrets.ATLAS_GITHUB_ACTIONS_READ_TOKEN }}
           GITHUB_WRITE_API_URL: ${{ secrets.GITHUB_WRITE_API_URL }}
           GITHUB_WRITE_API_KEY: ${{ secrets.GITHUB_WRITE_API_KEY }}
           EMAIL_SEND_API_URL: ${{ secrets.EMAIL_SEND_API_URL }}
