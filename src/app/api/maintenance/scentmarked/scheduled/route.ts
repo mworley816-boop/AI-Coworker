@@ -1,6 +1,7 @@
 import {NextRequest,NextResponse} from "next/server";
 import {createServiceSupabaseClient} from "@/lib/supabase/service";
 import {runtimeEnv} from "@/lib/runtime-env";
+import {inspectFailedScentmarkedRuns,summarizeWorkflowIncidents} from "@/lib/maintenance/github-workflow-incidents";
 
 type WebsiteEvent={type:"outage"|"recovery";at:string;detail:string};
 export async function POST(request:NextRequest){
@@ -13,6 +14,15 @@ export async function POST(request:NextRequest){
  const {data:workspaces,error}=await supabase.from("workspaces").select("id,user_id,resources").eq("slug","scentmarked").limit(100);
  if(error)return NextResponse.json({error:"Could not load maintenance workspaces."},{status:500});
  if(!workspaces?.length)return NextResponse.json({error:"No Scentmarked workspaces were found; no website checks ran.",checked:0,results:[]},{status:503});
+ const githubToken=env.ATLAS_GITHUB_ACTIONS_READ_TOKEN;
+ let githubCheck:{id:string;label:string;status:string;detail:string}|null=null;
+ if(githubToken){
+  try{
+   githubCheck=summarizeWorkflowIncidents(await inspectFailedScentmarkedRuns({owner:"mworley816-boop",repo:"Scentmarked-",token:githubToken}));
+  }catch{
+   githubCheck={id:"github_actions",label:"Scentmarked GitHub Actions",status:"warning",detail:"GitHub diagnostics unavailable; website monitoring continues."};
+  }
+ }
  const results=[];
  for(const workspace of workspaces??[]){
   const resources=(workspace.resources??{}) as Record<string,unknown>;
@@ -30,7 +40,8 @@ export async function POST(request:NextRequest){
   const events=[...(prior.websiteEvents??[])].slice(-49);
   if(streak===3)events.push({type:"outage",at:now,detail});
   if(status==="healthy"&&previousStreak>=3)events.push({type:"recovery",at:now,detail});
-  const checks=[...(prior.checks??[]).filter(c=>c.id!=="website"),{id:"website",label:"Scentmarked website",status,detail:status==="warning"?`${detail} Consecutive failures: ${streak}.`:detail}];
+  const checks=[...(prior.checks??[]).filter(c=>c.id!=="website"&&(!githubCheck||c.id!=="github_actions")),{id:"website",label:"Scentmarked website",status,detail:status==="warning"?`${detail} Consecutive failures: ${streak}.`:detail}];
+  if(githubCheck)checks.push(githubCheck);
   const maintenance={...prior,checks,checkedAt:now,lastScheduledCheck:now,websiteFailureStreak:streak,websiteEvents:events};
   const health=checks.every(c=>c.status==="healthy")?"healthy":"attention";
   const {error:updateError}=await supabase.from("workspaces").update({resources:{...resources,maintenance},health,last_checked_at:now,updated_at:now}).eq("id",workspace.id).eq("user_id",workspace.user_id);
