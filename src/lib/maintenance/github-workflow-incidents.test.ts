@@ -36,3 +36,16 @@ test("rejects invalid repository and limits", async () => {
   await assert.rejects(inspectFailedScentmarkedRuns({owner: "../bad", repo: "repo", token: "token"}), TypeError);
   await assert.rejects(inspectFailedScentmarkedRuns({owner: "owner", repo: "repo", token: "token", maxRuns: 100}), RangeError);
 });
+
+test("maintenance summary retains safe links, failed jobs, and steps", () => {
+  const incidents = [{runId: 42, workflow: "CI", url: "https://github.com/owner/repo/actions/runs/42", jobs: [{id: 12, name: "verify", failedSteps: [{number: 2, name: "Typecheck"}]}], approvalRequired: true as const}];
+  const summary = summarizeWorkflowIncidents(incidents);
+  assert.equal(summary.status, "warning");
+  assert.deepEqual(summary.incidents, [{runId: 42, workflow: "CI", url: "https://github.com/owner/repo/actions/runs/42", jobs: [{id: 12, name: "verify", failedSteps: [{number: 2, name: "Typecheck"}]}]}]);
+  assert.equal(JSON.stringify(summary).includes("approvalRequired"), false);
+});
+test("maintenance summary includes an empty incident list when healthy", () => {
+  const summary = summarizeWorkflowIncidents([]);
+  assert.equal(summary.status, "healthy");
+  assert.deepEqual(summary.incidents, []);
+});
