@@ -9,7 +9,7 @@ export async function generateScentmarkedGraphic(input:{prompt:string;jobId:stri
  if(url.protocol!=="https:"||url.hostname!=="api.openai.com"||url.username||url.password||url.search||url.hash)throw new Error("INVALID_IMAGE_PROVIDER_ENDPOINT");
  const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),90000);
  try{
-  const response=await request(url.toString(),{method:"POST",headers:{"Authorization":"Bearer "+config.apiKey,"Content-Type":"application/json"},body:JSON.stringify({model:config.model??"gpt-image-1",prompt:input.prompt,size:"1024x1024",response_format:"b64_json"}),signal:controller.signal,cache:"no-store"});
+  const response=await request(url.toString(),{method:"POST",headers:{"Authorization":"Bearer "+config.apiKey,"Content-Type":"application/json"},body:JSON.stringify({model:config.model??"gpt-image-1",prompt:input.prompt,size:"1024x1024",output_format:"png"}),signal:controller.signal,cache:"no-store"});
   if(!response.ok)throw new Error("IMAGE_PROVIDER_REQUEST_FAILED");
   const result=await response.json() as {data?:{b64_json?:string}[]};
   const encoded=result.data?.[0]?.b64_json;
