@@ -1,0 +1,12 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { classifyConnectionResponse as classify } from './atlas-connection-health.mjs';
+test('successful authenticated response', () => assert.equal(classify({ status: 200, body: { connected: true } }).healthy, true));
+test('HTTP 200 with auth error is unhealthy', () => assert.deepEqual(classify({ status: 200, body: { error: 'unauthorized' } }), { healthy: false, state: 'unauthorized', action: 'reconnect' }));
+test('HTTP 200 with explicit failure is unhealthy', () => assert.equal(classify({ status: 200, body: { authenticated: false } }).state, 'unauthorized'));
+test('expired token is unhealthy', () => assert.equal(classify({ status: 200, body: { code: 'token_expired' } }).action, 'reconnect'));
+test('permission failure differs from auth failure', () => assert.equal(classify({ status: 403 }).action, 'check_permissions'));
+test('rate limiting requires retry', () => assert.equal(classify({ status: 429 }).state, 'rate_limited'));
+test('server error is unhealthy', () => assert.equal(classify({ status: 503 }).healthy, false));
+test('network failure is unhealthy', () => assert.equal(classify({ networkError: true }).state, 'unreachable'));
+test('invalid status rejected', () => assert.throws(() => classify({ status: 0 }), TypeError));
