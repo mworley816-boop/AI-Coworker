@@ -5,7 +5,9 @@ import {runtimeEnv} from "@/lib/runtime-env";
 import {processNextScentmarkedGraphicJob} from "@/lib/scentmarked-graphic-worker";
 
 /** Manually invoked, admin-only worker endpoint. No scheduler is registered. */
-export async function POST(){
+export async function POST(request:Request){
+ const origin=request.headers.get("origin");
+ if(origin&&origin!==new URL(request.url).origin)return NextResponse.json({ok:false,status:"INVALID_ORIGIN"},{status:403});
  const session=await createServerSupabaseClient();
  if(!session)return NextResponse.json({ok:false,status:"WORKSPACE_NOT_CONFIGURED"},{status:503});
  const {data:{user}}=await session.auth.getUser();
