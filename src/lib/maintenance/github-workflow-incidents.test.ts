@@ -14,7 +14,7 @@ test("reports only failed runs and failed steps without exposing credentials", a
       {id: 12, name: "verify", conclusion: "failure", steps: [{number: 2, name: "Typecheck", conclusion: "failure"}, {number: 3, name: "Cleanup", conclusion: "success"}]},
       {id: 13, name: "other", conclusion: "success", steps: []},
     ]});
-    return fakeResponse({workflow_runs: [{id: 42, name: "CI", conclusion: "failure"}, {id: 43, name: "OK", conclusion: "success"}]});
+    return fakeResponse({workflow_runs: [{id: 42, name: "CI", status: "completed", conclusion: "failure"}, {id: 43, name: "OK", status: "completed", conclusion: "success"}]});
   }) as typeof fetch;
   const incidents = await inspectFailedScentmarkedRuns({owner: "owner", repo: "repo", token: "private-token", fetchImpl});
   assert.equal(incidents.length, 1);
@@ -48,4 +48,23 @@ test("maintenance summary includes an empty incident list when healthy", () => {
   const summary = summarizeWorkflowIncidents([]);
   assert.equal(summary.status, "healthy");
   assert.deepEqual(summary.incidents, []);
+});
+
+test("ignores an old failed run after the same workflow succeeds", async () => {
+ const fetchImpl = (async () => fakeResponse({workflow_runs: [
+  {id: 102, name: "Verify", status: "completed", conclusion: "success"},
+  {id: 101, name: "Verify", status: "completed", conclusion: "failure"},
+ ]})) as typeof fetch;
+ const incidents = await inspectFailedScentmarkedRuns({owner:"owner",repo:"repo",token:"token",fetchImpl});
+ assert.deepEqual(incidents,[]);
+});
+test("ignores a running workflow when selecting the latest completed run", async () => {
+ const fetchImpl = (async (input: string | URL | Request) => String(input).includes("/jobs?")
+  ? fakeResponse({jobs: []})
+  : fakeResponse({workflow_runs: [
+    {id: 103, name: "Verify", status: "in_progress", conclusion: null},
+    {id: 102, name: "Verify", status: "completed", conclusion: "failure"},
+  ]})) as typeof fetch;
+ const incidents = await inspectFailedScentmarkedRuns({owner:"owner",repo:"repo",token:"token",fetchImpl});
+ assert.deepEqual(incidents.map(x=>x.runId),[102]);
 });
