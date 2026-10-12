@@ -17,8 +17,8 @@ export const githubReadAdapter:ToolAdapter={
   if(!env.CONNECTION_ENCRYPTION_KEY)return failure("Connection encryption is not configured");
   const {data:coworker,error:ownerError}=await context.supabase.from("coworkers").select("user_id").eq("id",context.coworkerId).maybeSingle();
   if(ownerError||!coworker?.user_id)return failure("Coworker owner could not be verified");
-  const {data:connection,error:connectionError}=await context.supabase.from("connections").select("id").eq("user_id",coworker.user_id).eq("provider","github").eq("status","connected").order("last_checked_at",{ascending:false,nullsFirst:false}).order("connected_at",{ascending:false}).limit(1).maybeSingle();
-  if(connectionError||!connection?.id)return failure("Connect GitHub before reading repositories");
+  const {data:connection,error:connectionError}=await context.supabase.from("connections").select("id").eq("user_id",coworker.user_id).eq("provider","github").eq("status","connected").contains("metadata",{verified_repository:repository}).order("last_checked_at",{ascending:false,nullsFirst:false}).limit(1).maybeSingle();
+  if(connectionError||!connection?.id)return failure(`Verify access to ${repository} in Atlas Connections before running GitHub research`);
   // Credentials have no user-facing SELECT policy; access them only through the server-side service client.
   const service=await createServiceSupabaseClient();
   if(!service)return failure("GitHub credential service is not configured");
