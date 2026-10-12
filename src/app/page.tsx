@@ -4,29 +4,37 @@ import WorkspaceSummary from "@/components/WorkspaceSummary";
 
 export default async function Home({searchParams}:{searchParams:Promise<{auth?:string;message?:string}>}){
  const q=await searchParams;
- return <main>
-  <aside>
-   <h2>AI Coworker</h2>
-   <nav aria-label="Atlas navigation">
-    <a href="/">Overview</a><br/>
-    <a href="/coworkers">Coworkers</a><br/>
-    <a href="/tasks">Tasks</a><br/>
-    <a href="/activity">Activity</a><br/>
-    <a href="/approvals">Approvals</a><br/>
-    <a href="/connections">Connections</a><br/>
-    <a href="/settings">Settings</a><br/>
-    <a href="/scentmarked-content/graphics">Graphics queue</a><br/>
-    <a href="/scentmarked-content/research">Perfume research</a>
+ return <main className="atlas-home">
+  <aside className="atlas-sidebar">
+   <h2>Atlas</h2>
+   <p className="sidebar-caption">Your AI workspace</p>
+   <nav aria-label="Atlas navigation" className="atlas-nav">
+    <a href="/" aria-current="page">Overview</a>
+    <a href="/tasks">Tasks</a>
+    <a href="/approvals">Needs review</a>
+    <a href="/coworkers">Coworkers</a>
+    <a href="/scentmarked-content">Scentmarked</a>
+    <details><summary>More tools</summary>
+     <a href="/activity">Activity</a>
+     <a href="/connections">Connections</a>
+     <a href="/scentmarked-content/graphics">Graphics queue</a>
+     <a href="/scentmarked-content/research">Perfume research</a>
+     <a href="/memory">Memory</a>
+     <a href="/tools">Permissions</a>
+     <a href="/settings">Settings</a>
+    </details>
    </nav>
   </aside>
-  <section>
+  <section className="atlas-main">
    <AuthPanel status={q.auth} message={q.message}/>
-   <header><div><p className="eyebrow">WORKSPACE</p><h1>Your AI coworkers</h1><p>Create workers, assign goals, and review everything they do.</p></div><button>+ New coworker</button></header>
-   <p><a href="/scentmarked-content">Scentmarked content manager: perfume verification, catalog drafts, and graphics planning →</a></p>
-   <p><a href="/scentmarked-content/graphics">Manage perfume graphics requests →</a> · <a href="/scentmarked-content/research">Research perfume sources →</a></p>
-   <WorkspaceSummary/>
-   <p><a href="/tasks">Browse all tasks →</a> · <a href="/activity">View activity →</a> · <a href="/memory">Atlas memory →</a> · <a href="/tools">Tools & permissions →</a></p>
-   <GoalComposer/>
+   <header className="calm-header"><div><p className="eyebrow">YOUR WORKSPACE</p><h1>Welcome to Atlas</h1><p>See what needs attention, then choose your next step.</p></div></header>
+   <div className="calm-actions" aria-label="Quick actions">
+    <a href="/approvals">Review pending work <span aria-hidden="true">→</span></a>
+    <a href="/tasks">Continue tasks <span aria-hidden="true">→</span></a>
+    <a href="/scentmarked-content">Manage Scentmarked <span aria-hidden="true">→</span></a>
+   </div>
+   <section className="calm-section" aria-labelledby="overview-title"><h2 id="overview-title">Workspace overview</h2><WorkspaceSummary/></section>
+   <details className="calm-expand"><summary>Start a new goal</summary><GoalComposer/></details>
   </section>
  </main>;
 }
