@@ -10,11 +10,11 @@ export default function TaskList(){
  const [filter,setFilter]=useState<Filter>("attention");
  const load=useCallback(async()=>{
   const s=createClient();
-  if(!s){setMessage("Supabase is not configured.");return;}
-  const {data:{user}}=await s.auth.getUser();
-  if(!user){setItems([]);setMessage("Sign in to browse tasks.");return;}
+  if(!s){setItems([]);setMessage("Supabase is not configured.");return;}
+  const {data:{user},error:authError}=await s.auth.getUser();
+  if(authError||!user){setItems([]);setMessage("Sign in to browse tasks.");return;}
   const {data,error}=await s.from("tasks").select("id,goal,status,created_at,runs(id,status,created_at)").order("created_at",{ascending:false}).limit(50);
-  if(error){setMessage("Tasks could not be loaded.");return;}
+  if(error){setItems([]);setMessage("Tasks could not be loaded.");return;}
   setItems((data??[]) as Task[]);setMessage(data?.length?"":"No tasks yet. Give Atlas a goal from the dashboard.");
  },[]);
  useEffect(()=>{void load();},[load]);
