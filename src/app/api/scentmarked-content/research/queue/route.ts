@@ -20,7 +20,7 @@ async function authorized(request:Request){
 export async function GET(request:Request){
  const auth=await authorized(request);
  if("error" in auth)return NextResponse.json({ok:false,error:auth.error},{status:auth.status});
- const {data,error}=await auth.service.from("atlas_perfume_research_jobs").select("id,house,perfume_name,status,source_url,source_type,created_at,updated_at").eq("owner_user_id",auth.user.id).order("created_at",{ascending:false}).limit(50);
+ const {data,error}=await auth.service.from("atlas_perfume_research_jobs").select("id,house,perfume_name,status,source_url,source_type,draft_payload,created_at,updated_at").eq("owner_user_id",auth.user.id).order("created_at",{ascending:false}).limit(50);
  if(error)return NextResponse.json({ok:false,error:"QUEUE_LOOKUP_FAILED"},{status:502});
  return NextResponse.json({ok:true,jobs:data??[]},{headers:{"cache-control":"no-store"}});
 }
