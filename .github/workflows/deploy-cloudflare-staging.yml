@@ -1,4 +1,5 @@
 name: Deploy Cloudflare Staging
+# Redeploy after configuring Atlas Supabase GitHub Actions secrets.
 on:
   workflow_dispatch:
   push:
