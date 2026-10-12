@@ -3,6 +3,7 @@ import {createServerSupabaseClient} from "@/lib/supabase/server";
 import {createServiceSupabaseClient} from "@/lib/supabase/service";
 import {runtimeEnv} from "@/lib/runtime-env";
 import {canReviewGeneratedGraphic} from "@/lib/scentmarked-graphic-review-policy";
+import {planGraphicReviewUpdate} from "@/lib/scentmarked-graphic-review-decision";
 /** Human review only: never publishes or changes public storage. */
 export async function POST(request:Request){
  const origin=request.headers.get("origin");
@@ -20,16 +21,15 @@ export async function POST(request:Request){
  try{body=JSON.parse(raw)}catch{return NextResponse.json({ok:false,error:"INVALID_REQUEST"},{status:400})}
  const id=body.id;
  if(typeof id!=="string"||!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id))return NextResponse.json({ok:false,error:"INVALID_JOB_ID"},{status:400});
- if(body.decision!=="approve"&&body.decision!=="reject")return NextResponse.json({ok:false,error:"INVALID_DECISION"},{status:400});
- if(body.decision==="approve"&&(body.identityVerified!==true||body.rightsCleared!==true))return NextResponse.json({ok:false,error:"REVIEW_CONFIRMATION_REQUIRED"},{status:400});
+ const decision=planGraphicReviewUpdate(body.decision,body.identityVerified,body.rightsCleared);
+ if(!decision.ok)return NextResponse.json({ok:false,error:decision.error},{status:400});
  const service=await createServiceSupabaseClient();
  if(!service)return NextResponse.json({ok:false,error:"QUEUE_NOT_CONFIGURED"},{status:503});
  const {data:job,error:lookupError}=await service.from("scentmarked_graphic_jobs").select("owner_user_id,status,output_storage_path").eq("id",id).maybeSingle();
  if(lookupError)return NextResponse.json({ok:false,error:"QUEUE_LOOKUP_FAILED"},{status:502});
  if(!job||job.owner_user_id!==user.id)return NextResponse.json({ok:false,error:"JOB_NOT_FOUND"},{status:404});
  if(!canReviewGeneratedGraphic(job,user.id,id))return NextResponse.json({ok:false,error:"JOB_NOT_REVIEWABLE"},{status:409});
- const approve=body.decision==="approve";
- const {data:updated,error}=await service.from("scentmarked_graphic_jobs").update({status:approve?"approved":"held",identity_verified:approve,rights_cleared:approve,error_code:approve?null:"REJECTED_BY_REVIEWER",updated_at:new Date().toISOString()}).eq("id",id).eq("owner_user_id",user.id).eq("status","generated").select("id,status").maybeSingle();
+ const {data:updated,error}=await service.from("scentmarked_graphic_jobs").update({...decision.update,updated_at:new Date().toISOString()}).eq("id",id).eq("owner_user_id",user.id).eq("status","generated").select("id,status").maybeSingle();
  if(error)return NextResponse.json({ok:false,error:"REVIEW_UPDATE_FAILED"},{status:502});
  if(!updated)return NextResponse.json({ok:false,error:"JOB_CHANGED"},{status:409});
  return NextResponse.json({ok:true,status:updated.status},{headers:{"cache-control":"no-store"}});
