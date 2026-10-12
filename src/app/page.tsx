@@ -28,11 +28,11 @@ export default async function Home({searchParams}:{searchParams:Promise<{auth?:s
   <section className="atlas-main">
    <AuthPanel status={q.auth} message={q.message}/>
    <header className="calm-header"><div><p className="eyebrow">YOUR WORKSPACE</p><h1>Welcome to Atlas</h1><p>See what needs attention, then choose your next step.</p></div></header>
-   <div className="calm-actions" aria-label="Quick actions">
+   <section className="attention-hub" aria-labelledby="attention-title"><div className="attention-head"><h2 id="attention-title">Needs your attention</h2><p>Choose one thing to focus on.</p></div><div className="calm-actions" aria-label="Quick actions">
     <a href="/approvals">Review pending work <span aria-hidden="true">→</span></a>
     <a href="/tasks">Continue tasks <span aria-hidden="true">→</span></a>
     <a href="/scentmarked-content">Manage Scentmarked <span aria-hidden="true">→</span></a>
-   </div>
+   </div></section>
    <section className="calm-section" aria-labelledby="overview-title"><h2 id="overview-title">Workspace overview</h2><WorkspaceSummary/></section>
    <details className="calm-expand"><summary>Start a new goal</summary><GoalComposer/></details>
   </section>
