@@ -3,6 +3,7 @@ import {createServerSupabaseClient} from "@/lib/supabase/server";
 import {createServiceSupabaseClient} from "@/lib/supabase/service";
 import {runtimeEnv} from "@/lib/runtime-env";
 import {researchPerfumeSource} from "@/lib/scentmarked-perfume-source-research";
+import {planPerfumeSourceRetrieval} from "@/lib/scentmarked-perfume-source-retrieval-policy";
 /** Explicit, admin-triggered single-job research. Never publishes. */
 export async function POST(request:Request){
  const origin=request.headers.get("origin");
@@ -25,6 +26,8 @@ export async function POST(request:Request){
  if(lookupError)return NextResponse.json({ok:false,error:"QUEUE_LOOKUP_FAILED"},{status:502});
  if(!job)return NextResponse.json({ok:false,error:"JOB_NOT_FOUND"},{status:404});
  if(job.status!=="queued")return NextResponse.json({ok:false,error:"JOB_NOT_QUEUED"},{status:409});
+ const plan=planPerfumeSourceRetrieval(job.house,body.sourceUrl);
+ if(!plan.ok)return NextResponse.json({ok:false,error:plan.reason},{status:422});
  const {data:claimed,error:claimError}=await service.from("atlas_perfume_research_jobs").update({status:"researching",updated_at:new Date().toISOString()}).eq("id",job.id).eq("owner_user_id",user.id).eq("status","queued").select("id").maybeSingle();
  if(claimError)return NextResponse.json({ok:false,error:"JOB_CLAIM_FAILED"},{status:502});
  if(!claimed)return NextResponse.json({ok:false,error:"JOB_ALREADY_CLAIMED"},{status:409});
