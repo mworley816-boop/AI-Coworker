@@ -9,11 +9,13 @@ export async function fetchPerfumeSourcePage(house:string,rawUrl:string,fetcher:
  try{
   const response=await fetcher(plan.url,{method:"GET",redirect:"error",signal:controller.signal,headers:{accept:"text/html"}});
   if(!response.ok)return {ok:false,reason:"SOURCE_HTTP_ERROR"};
-  if(response.url&&response.url!==plan.url)return {ok:false,reason:"SOURCE_REDIRECTED"};
+  if(response.redirected||response.type==="opaqueredirect"||(response.url&&response.url!==plan.url))return {ok:false,reason:"SOURCE_REDIRECTED"};
   const mime=response.headers.get("content-type")?.toLowerCase()??"";
   if(!mime.startsWith("text/html"))return {ok:false,reason:"SOURCE_NOT_HTML"};
-  const length=Number(response.headers.get("content-length"));
-  if(Number.isFinite(length)&&length>plan.maxBytes)return {ok:false,reason:"SOURCE_TOO_LARGE"};
+  const declaredLength=response.headers.get("content-length");
+  const length=declaredLength===null?null:Number(declaredLength);
+  if(length!==null&&(!Number.isFinite(length)||length<0))return {ok:false,reason:"SOURCE_INVALID_LENGTH"};
+  if(length!==null&&length>plan.maxBytes)return {ok:false,reason:"SOURCE_TOO_LARGE"};
   if(!response.body)return {ok:false,reason:"SOURCE_EMPTY"};
   const reader=response.body.getReader();
   const chunks:Uint8Array[]=[];
