@@ -2,6 +2,7 @@ import {NextResponse} from "next/server";
 import {createServerSupabaseClient} from "@/lib/supabase/server";
 import {createServiceSupabaseClient} from "@/lib/supabase/service";
 import {runtimeEnv} from "@/lib/runtime-env";
+import {canReviewGeneratedGraphic} from "@/lib/scentmarked-graphic-review-policy";
 /** Human review only: never publishes or changes public storage. */
 export async function POST(request:Request){
  const origin=request.headers.get("origin");
@@ -26,7 +27,7 @@ export async function POST(request:Request){
  const {data:job,error:lookupError}=await service.from("scentmarked_graphic_jobs").select("owner_user_id,status,output_storage_path").eq("id",id).maybeSingle();
  if(lookupError)return NextResponse.json({ok:false,error:"QUEUE_LOOKUP_FAILED"},{status:502});
  if(!job||job.owner_user_id!==user.id)return NextResponse.json({ok:false,error:"JOB_NOT_FOUND"},{status:404});
- if(job.status!=="generated"||job.output_storage_path!=="generated/"+id+".png")return NextResponse.json({ok:false,error:"JOB_NOT_REVIEWABLE"},{status:409});
+ if(!canReviewGeneratedGraphic(job,user.id,id))return NextResponse.json({ok:false,error:"JOB_NOT_REVIEWABLE"},{status:409});
  const approve=body.decision==="approve";
  const {data:updated,error}=await service.from("scentmarked_graphic_jobs").update({status:approve?"approved":"held",identity_verified:approve,rights_cleared:approve,error_code:approve?null:"REJECTED_BY_REVIEWER",updated_at:new Date().toISOString()}).eq("id",id).eq("owner_user_id",user.id).eq("status","generated").select("id,status").maybeSingle();
  if(error)return NextResponse.json({ok:false,error:"REVIEW_UPDATE_FAILED"},{status:502});
