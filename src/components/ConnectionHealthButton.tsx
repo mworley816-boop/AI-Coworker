@@ -14,17 +14,18 @@ function healthFailure(data:HealthResponse,responseStatus:number):string{
 export default function ConnectionHealthButton({id,provider}:{id:string;provider:Provider}){
  const [busy,setBusy]=useState(false);
  const [message,setMessage]=useState("");
+ const [repository,setRepository]=useState("mworley816-boop/Scentmarked-");
  async function check(){
   setBusy(true);setMessage("");
   try{
    const family=provider==="github"?"github":"google";
-   const response=await fetch("/api/connections/"+family+"/health",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({id})});
+   const response=await fetch("/api/connections/"+family+"/health",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({id,...(provider==="github"&&repository.trim()?{repository:repository.trim()}:{})})});
    const data=await response.json() as HealthResponse;
    if(!response.ok||!data.healthy)throw new Error(healthFailure(data,response.status));
    const account=data.login??data.email;
-   setMessage(account?"Connected as "+account:"Connection is healthy");
+   setMessage(provider==="github"&&repository.trim()?`Repository access verified: ${repository.trim()} (${account??"GitHub account"})`:account?"Connected as "+account:"Connection is healthy");
   }catch(error){setMessage(error instanceof Error?error.message:"Connection check failed");}
   finally{setBusy(false);}
  }
- return <div><button type="button" onClick={check} disabled={busy}>{busy?"Checking…":"Check connection"}</button>{message?<p role="status">{message}</p>:null}</div>;
+ return <div>{provider==="github"?<label>Repository to verify <input aria-label="GitHub repository to verify" value={repository} onChange={event=>setRepository(event.target.value)} placeholder="owner/repository"/></label>:null}<button type="button" onClick={check} disabled={busy}>{busy?"Checking…":"Check connection"}</button>{message?<p role="status">{message}</p>:null}</div>;
 }
