@@ -8,7 +8,7 @@ test("normalizes sourced perfume research without publishing",()=>{
  if(result.ok)assert.deepEqual(result.candidate.notes,["vanilla","amber"]);
 });
 test("rejects unsafe source URLs and unverified fields",()=>{
- for(const sourceUrl of ["http://example.com","https://localhost/path","https://127.0.0.1/path","https://example.com/#fragment","https://user:pass@example.com/path","invalid"]){
+ for(const sourceUrl of ["http://example.com","https://localhost/path","https://127.0.0.1/path","https://192.168.1.20/path","https://8.8.8.8/path","https://example.com/#fragment","https://user:pass@example.com/path","invalid"]){
   assert.equal(validatePerfumeResearchCandidate({...candidate,sourceUrl}).ok,false);
  }
  assert.equal(validatePerfumeResearchCandidate({...candidate,name:" "}).ok,false);
