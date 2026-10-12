@@ -30,3 +30,21 @@ main.run-page .calm-header p{max-width:65ch}
  .approval-actions button{flex:1 1 160px;margin:0}
  .coworker-directory-card{padding:16px}
 }
+
+/* Make navigation and controls usable on touch devices and with keyboard focus. */
+a,button,summary{-webkit-tap-highlight-color:transparent}
+button{cursor:pointer}
+button:disabled{opacity:.6;cursor:not-allowed}
+a:focus-visible,button:focus-visible,summary:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid #a6c8ff;outline-offset:3px}
+@media(max-width:800px){
+ .atlas-nav{overflow:visible}
+ .atlas-nav>a,.atlas-nav>details>summary{min-height:44px;display:flex;align-items:center}
+ .atlas-nav details[open]{background:#151b26;border:1px solid #354153;border-radius:12px;padding:8px}
+ .atlas-nav details[open] a{min-height:44px;display:flex;align-items:center}
+}
+@media(max-width:480px){
+ .atlas-nav>a,.atlas-nav>details>summary{flex:1 1 auto;justify-content:center}
+ .task-list .task-card a{display:inline-flex;min-height:44px;align-items:center}
+ .coworker-directory>button{min-height:44px}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important}}
