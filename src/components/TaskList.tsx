@@ -8,7 +8,10 @@ export default function TaskList(){
  const [items,setItems]=useState<Task[]>([]);
  const [message,setMessage]=useState("Loading tasks…");
  const [filter,setFilter]=useState<Filter>("attention");
+ const [loading,setLoading]=useState(true);
  const load=useCallback(async()=>{
+  setLoading(true);
+  try{
   const s=createClient();
   if(!s){setItems([]);setMessage("Supabase is not configured.");return;}
   const {data:{user},error:authError}=await s.auth.getUser();
@@ -16,6 +19,8 @@ export default function TaskList(){
   const {data,error}=await s.from("tasks").select("id,goal,status,created_at,runs(id,status,created_at)").order("created_at",{ascending:false}).limit(50);
   if(error){setItems([]);setMessage("Tasks could not be loaded.");return;}
   setItems((data??[]) as Task[]);setMessage(data?.length?"":"No tasks yet. Give Atlas a goal from the dashboard.");
+  }catch{setItems([]);setMessage("Tasks could not be loaded.");}
+  finally{setLoading(false);}
  },[]);
  useEffect(()=>{void load();},[load]);
  const shown=useMemo(()=>items.filter(t=>filter==="all"|| (filter==="completed"?!attentionStatuses.has(t.status):attentionStatuses.has(t.status))),[items,filter]);
@@ -31,7 +36,7 @@ export default function TaskList(){
   </article>})}
   {!message&&shown.length===0?<p role="status">{filter==="attention"?"Nothing needs attention in the most recent 50 tasks.":"No tasks in this view."}</p>:null}
   {message?<p role="status">{message}</p>:null}
-  <button className="secondary" onClick={()=>void load()}>Refresh tasks</button>
+  <button type="button" className="secondary" disabled={loading} onClick={()=>void load()}>{loading?"Loading…":"Refresh tasks"}</button>
   <small>Showing up to 50 most recent tasks.</small>
  </div>;
 }
