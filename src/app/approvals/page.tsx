@@ -1,0 +1,2 @@
+import ApprovalInbox from "@/components/ApprovalInbox";
+export default function ApprovalsPage(){return <main className="run-page"><section><nav aria-label="Breadcrumb"><a href="/">← Back to Atlas</a></nav><header className="calm-header"><div><p className="eyebrow">YOUR WORKSPACE</p><h1>Needs review</h1><p>Review proposed actions before Atlas proceeds.</p></div></header><ApprovalInbox/></section></main>;}
