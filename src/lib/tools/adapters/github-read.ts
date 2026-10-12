@@ -37,7 +37,7 @@ export const githubReadAdapter:ToolAdapter={
   let response:Response;
   try{response=await fetch(url,{headers:{accept:branchResource||historyResource?"application/vnd.github+json":"application/vnd.github.raw+json",authorization:`Bearer ${token}`,"x-github-api-version":"2022-11-28","user-agent":"Atlas-AI-Coworker"},signal:AbortSignal.timeout(15000),cache:"no-store"});}
   catch{return failure("GitHub file request failed");}
-  if(!response.ok)return failure(response.status===404?(branchResource?"Repository branch not found or inaccessible":"Repository file not found or inaccessible"):`GitHub returned HTTP ${response.status}`);
+  if(!response.ok){if(response.status===409)return failure("GitHub reported a repository conflict (409). Verify the exact owner/repository name, including any trailing hyphen, and confirm the repository has commits.");return failure(response.status===404?(branchResource?"Repository branch not found or inaccessible":"Repository file not found or inaccessible"):`GitHub returned HTTP ${response.status}`);}
   const text=await response.text();
   if(!text.trim())return failure("GitHub returned an empty file");
   return {ok:true,toolId,message:historyResource?"GitHub repository history inspected successfully.":branchResource?"GitHub repository branch inspected successfully.":"GitHub repository file read successfully.",data:{repository,resource,content:text.slice(0,24000),truncated:text.length>24000}};
