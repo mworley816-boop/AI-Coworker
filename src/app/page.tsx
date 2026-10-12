@@ -12,8 +12,8 @@ export default async function Home({searchParams}:{searchParams:Promise<{auth?:s
    <nav aria-label="Atlas navigation" className="atlas-nav">
     <a href="/" aria-current="page">Overview</a>
     <a href="/tasks">Tasks</a>
-    <a href="/approvals">Needs review</a>
-    <a href="/coworkers">Coworkers</a>
+    <a href="/tasks">Needs review</a>
+    <a href="/#overview-title">Coworkers</a>
     <a href="/scentmarked-content">Scentmarked</a>
     <details><summary>More tools</summary>
      <a href="/activity">Activity</a>
@@ -22,7 +22,6 @@ export default async function Home({searchParams}:{searchParams:Promise<{auth?:s
      <a href="/scentmarked-content/research">Perfume research</a>
      <a href="/memory">Memory</a>
      <a href="/tools">Permissions</a>
-     <a href="/settings">Settings</a>
     </details>
    </nav>
   </aside>
