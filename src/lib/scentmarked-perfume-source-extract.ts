@@ -1,7 +1,8 @@
+import {extractExplicitMetaNotes} from "./scentmarked-perfume-html-meta-notes";
 /** Conservative extraction of fragrance fields from source HTML.
  * No script execution, remote fetching, or automatic approval.
  */
-export type ExtractedPerfumeFacts={name:string|null;notes:string[];evidence:"jsonld"|"none"};
+export type ExtractedPerfumeFacts={name:string|null;notes:string[];evidence:"jsonld"|"jsonld+meta"|"none"};
 export function extractPerfumeFacts(html:string):ExtractedPerfumeFacts{
  if(typeof html!=="string"||html.length>250_000)return {name:null,notes:[],evidence:"none"};
  const blocks=[...html.matchAll(/<script\b[^>]*type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script\s*>/gi)].slice(0,20);
@@ -29,6 +30,7 @@ export function extractPerfumeFacts(html:string):ExtractedPerfumeFacts{
      const values=typeof p.value==="string"?p.value.split(/[,;]+/):[];
      for(const value of values){const v=value.trim();if(v&&v.length<=100&&!notes.includes(v))notes.push(v);if(notes.length>=40)break}
     }
+    if(!notes.length){const metaNotes=extractExplicitMetaNotes(html);if(metaNotes.length)return {name,notes:metaNotes,evidence:"jsonld+meta"}}
     return {name,notes,evidence:"jsonld"};
    }
   }
