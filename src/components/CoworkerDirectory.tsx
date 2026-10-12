@@ -7,7 +7,10 @@ export default function CoworkerDirectory(){
  const [message,setMessage]=useState("Loading coworkers…");
  const [creating,setCreating]=useState(false);
  const [signedIn,setSignedIn]=useState(false);
+ const [loading,setLoading]=useState(true);
  const load=useCallback(async()=>{
+  setLoading(true);
+  try{
   const client=createClient();
   if(!client){setSignedIn(false);setItems([]);setMessage("Workspace connection is not configured.");return;}
   const {data:{user},error:authError}=await client.auth.getUser();
@@ -16,6 +19,8 @@ export default function CoworkerDirectory(){
   const {data,error}=await client.from("coworkers").select("id,name,role,status").eq("user_id",user.id).order("name",{ascending:true}).limit(50);
   if(error){setItems([]);setMessage("Could not load coworkers.");return;}
   setItems((data??[]) as Coworker[]);setMessage(data?.length?"":"No coworkers yet. You can create Atlas below.");
+  }catch{setSignedIn(false);setItems([]);setMessage("Could not load coworkers.");}
+  finally{setLoading(false);}
  },[]);
  useEffect(()=>{void load();},[load]);
  const createAtlas=async()=>{
@@ -33,8 +38,8 @@ export default function CoworkerDirectory(){
    <div><h2>{item.name}</h2><p>{item.role||"AI coworker"}</p><span className="pill">Status: {item.status.replaceAll("_"," ")}</span></div>
   </article>)}
   {message?<p role="status">{message}</p>:null}
-  {signedIn&&!items.some(item=>item.name==="Atlas")?<button type="button" disabled={creating} onClick={()=>void createAtlas()}>{creating?"Creating…":"Create Atlas"}</button>:null}
-  <button type="button" className="secondary" onClick={()=>void load()}>Refresh</button>
+  {signedIn&&!loading&&!items.some(item=>item.name==="Atlas")?<button type="button" disabled={creating} onClick={()=>void createAtlas()}>{creating?"Creating…":"Create Atlas"}</button>:null}
+  <button type="button" className="secondary" disabled={loading||creating} onClick={()=>void load()}>{loading?"Loading…":"Refresh"}</button>
   <p><a href="/tools">Manage tool permissions →</a></p>
  </div>;
 }
