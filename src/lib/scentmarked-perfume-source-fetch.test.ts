@@ -19,3 +19,13 @@ test("does not fetch unlisted sources",async()=>{
  assert.equal((await fetchPerfumeSourcePage("Lattafa","https://evil.example/test",fake)).ok,false);
  assert.equal(called,false);
 });
+
+test("rejects declared oversized responses before streaming",async()=>{
+ const fake=(async()=>new Response("small",{headers:{"content-type":"text/html","content-length":"250001"}})) as typeof fetch;
+ const result=await fetchPerfumeSourcePage("Lattafa","https://lattafa.com/test",fake);
+ assert.deepEqual(result,{ok:false,reason:"SOURCE_TOO_LARGE"});
+});
+test("rejects invalid content-length values",async()=>{
+ const fake=(async()=>new Response("small",{headers:{"content-type":"text/html","content-length":"invalid"}})) as typeof fetch;
+ assert.deepEqual(await fetchPerfumeSourcePage("Lattafa","https://lattafa.com/test",fake),{ok:false,reason:"SOURCE_INVALID_LENGTH"});
+});
