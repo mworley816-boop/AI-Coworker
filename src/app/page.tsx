@@ -15,14 +15,15 @@ export default async function Home({searchParams}:{searchParams:Promise<{auth?:s
     <a href="/approvals">Approvals</a><br/>
     <a href="/connections">Connections</a><br/>
     <a href="/settings">Settings</a><br/>
-    <a href="/scentmarked-content/graphics">Graphics queue</a>
+    <a href="/scentmarked-content/graphics">Graphics queue</a><br/>
+    <a href="/scentmarked-content/research">Perfume research</a>
    </nav>
   </aside>
   <section>
    <AuthPanel status={q.auth} message={q.message}/>
    <header><div><p className="eyebrow">WORKSPACE</p><h1>Your AI coworkers</h1><p>Create workers, assign goals, and review everything they do.</p></div><button>+ New coworker</button></header>
    <p><a href="/scentmarked-content">Scentmarked content manager: perfume verification, catalog drafts, and graphics planning →</a></p>
-   <p><a href="/scentmarked-content/graphics">Manage perfume graphics requests →</a></p>
+   <p><a href="/scentmarked-content/graphics">Manage perfume graphics requests →</a> · <a href="/scentmarked-content/research">Research perfume sources →</a></p>
    <WorkspaceSummary/>
    <p><a href="/tasks">Browse all tasks →</a> · <a href="/activity">View activity →</a> · <a href="/memory">Atlas memory →</a> · <a href="/tools">Tools & permissions →</a></p>
    <GoalComposer/>
