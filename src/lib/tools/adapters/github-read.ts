@@ -31,14 +31,15 @@ export const githubReadAdapter:ToolAdapter={
   const path=resource.split("/").map(encodeURIComponent).join("/");
   // Investigation plans use "main" as a branch identifier, not a file path.
   const branchResource=resource==="main"||resource==="master";
+  const historyResource=resource==="commits"||resource==="workflows";
   const base=`https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}`;
-  const url=branchResource?`${base}/branches/${encodeURIComponent(resource)}`:`${base}/contents/${path}`;
+  const url=historyResource?`${base}/${resource==="commits"?"commits?per_page=5":"actions/runs?per_page=10"}`:branchResource?`${base}/branches/${encodeURIComponent(resource)}`:`${base}/contents/${path}`;
   let response:Response;
-  try{response=await fetch(url,{headers:{accept:branchResource?"application/vnd.github+json":"application/vnd.github.raw+json",authorization:`Bearer ${token}`,"x-github-api-version":"2022-11-28","user-agent":"Atlas-AI-Coworker"},signal:AbortSignal.timeout(15000),cache:"no-store"});}
+  try{response=await fetch(url,{headers:{accept:branchResource||historyResource?"application/vnd.github+json":"application/vnd.github.raw+json",authorization:`Bearer ${token}`,"x-github-api-version":"2022-11-28","user-agent":"Atlas-AI-Coworker"},signal:AbortSignal.timeout(15000),cache:"no-store"});}
   catch{return failure("GitHub file request failed");}
   if(!response.ok)return failure(response.status===404?(branchResource?"Repository branch not found or inaccessible":"Repository file not found or inaccessible"):`GitHub returned HTTP ${response.status}`);
   const text=await response.text();
   if(!text.trim())return failure("GitHub returned an empty file");
-  return {ok:true,toolId,message:branchResource?"GitHub repository branch inspected successfully.":"GitHub repository file read successfully.",data:{repository,resource,content:text.slice(0,24000),truncated:text.length>24000}};
+  return {ok:true,toolId,message:historyResource?"GitHub repository history inspected successfully.":branchResource?"GitHub repository branch inspected successfully.":"GitHub repository file read successfully.",data:{repository,resource,content:text.slice(0,24000),truncated:text.length>24000}};
  }
 };
