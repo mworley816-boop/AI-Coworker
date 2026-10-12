@@ -18,7 +18,7 @@ export default function TaskList(){
   setItems((data??[]) as Task[]);setMessage(data?.length?"":"No tasks yet. Give Atlas a goal from the dashboard.");
  },[]);
  useEffect(()=>{void load();},[load]);
- const shown=useMemo(()=>items.filter(t=>filter==="all"||filter==="completed"?!attentionStatuses.has(t.status):attentionStatuses.has(t.status)),[items,filter]);
+ const shown=useMemo(()=>items.filter(t=>filter==="all"|| (filter==="completed"?!attentionStatuses.has(t.status):attentionStatuses.has(t.status))),[items,filter]);
  return <div className="task-list">
   <div className="task-filters" role="group" aria-label="Filter tasks">
    <button type="button" aria-pressed={filter==="attention"} onClick={()=>setFilter("attention")}>Needs attention</button>
