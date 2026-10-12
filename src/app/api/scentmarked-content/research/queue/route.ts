@@ -33,6 +33,7 @@ export async function POST(request:Request){
  try{body=JSON.parse(raw)}catch{return NextResponse.json({ok:false,error:"INVALID_REQUEST"},{status:400})}
  if(typeof body.house!=="string"||typeof body.name!=="string"||!body.house.trim()||!body.name.trim()||body.house.length>120||body.name.length>180)return NextResponse.json({ok:false,error:"INVALID_PERFUME_IDENTITY"},{status:400});
  const {data,error}=await auth.service.from("atlas_perfume_research_jobs").insert({owner_user_id:auth.user.id,house:body.house.trim(),perfume_name:body.name.trim(),status:"queued"}).select("id,status").single();
+ if(error?.code==="23505")return NextResponse.json({ok:false,error:"ACTIVE_RESEARCH_JOB_EXISTS"},{status:409});
  if(error)return NextResponse.json({ok:false,error:"QUEUE_INSERT_FAILED"},{status:502});
  return NextResponse.json({ok:true,job:data},{status:201,headers:{"cache-control":"no-store"}});
 }
