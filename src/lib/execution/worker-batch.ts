@@ -6,7 +6,7 @@ export async function processQueuedRunBatch(supabase:SupabaseLike,workerId:strin
   if(finalization.error)return {ok:false as const,processed:0,results:[],reason:"Completed stalled runs could not be finalized"};
   const finalized=typeof finalization.data==="number"?finalization.data:0;
   const reports=await supabase.rpc("backfill_completed_run_reports");
-  if(reports.error)return {ok:false as const,processed:0,finalized,reportsRecovered,results:[],reason:"Completed run reports could not be recovered"};
+  if(reports.error)return {ok:false as const,processed:0,finalized,results:[],reason:"Completed run reports could not be recovered"};
   const reportsRecovered=typeof reports.data==="number"?reports.data:0;
   const stalled=await supabase.rpc("reconcile_stalled_runs");
   if(stalled.error)return {ok:false as const,processed:0,finalized,reportsRecovered,results:[],reason:"Stalled runs could not be reconciled"};
