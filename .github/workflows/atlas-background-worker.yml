@@ -29,11 +29,19 @@ jobs:
         env:
           WORKER_SECRET: ${{ secrets.ATLAS_WORKER_SECRET }}
         run: |
-          response=$(curl --fail-with-body --silent --show-error --max-time 240 \
+          response_file=$(mktemp)
+          trap 'rm -f "$response_file"' EXIT
+          status=$(curl --silent --show-error --max-time 240 \
+            --output "$response_file" --write-out '%{http_code}' \
             -X POST \
             -H "Authorization: Bearer $WORKER_SECRET" \
             -H "Content-Type: application/json" \
             -H "x-worker-batch-size: 5" \
             "https://ai-coworker-staging.m-worley816.workers.dev/api/worker/run")
-          echo "$response" | jq -e '.ok == true' >/dev/null
-          echo "$response" | jq '{ok,processed,finalized,recovered,requeued,quarantined,idle,durationMs}'
+          echo "Worker HTTP status: $status"
+          if [ "$status" != "200" ]; then
+            jq -c '{ok,reason,error}' "$response_file" 2>/dev/null || echo "::error::Worker returned a non-JSON error response."
+            exit 1
+          fi
+          jq -e '.ok == true' "$response_file" >/dev/null
+          jq '{ok,processed,finalized,recovered,requeued,quarantined,idle,durationMs}' "$response_file"
