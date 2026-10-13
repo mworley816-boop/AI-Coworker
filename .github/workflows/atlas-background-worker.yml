@@ -44,4 +44,4 @@ jobs:
             exit 1
           fi
           jq -e '.ok == true' "$response_file" >/dev/null
-          jq '{ok,processed,finalized,recovered,requeued,quarantined,idle,durationMs}' "$response_file"
+          jq '{ok,processed,finalized,reportsRecovered,recovered,requeued,quarantined,idle,durationMs}' "$response_file"
