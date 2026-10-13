@@ -1,0 +1,2 @@
+import MemoryPanel from "@/components/MemoryPanel";
+export default function MemoryPage(){return <main className="run-page"><section><a href="/">← Dashboard</a><p className="eyebrow">ATLAS</p><h1>Memory</h1><p>Control what Atlas keeps as working, project, or long-term context.</p><MemoryPanel/></section></main>}

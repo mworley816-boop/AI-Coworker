@@ -1,0 +1,50 @@
+:root{font-family:Inter,ui-sans-serif,system-ui;background:#0b0d12;color:#f6f7fb}*{box-sizing:border-box}body{margin:0}main{min-height:100vh;display:grid;grid-template-columns:240px 1fr}aside{padding:28px 24px;border-right:1px solid #242833;background:#10131a}nav{line-height:2.6;color:#aeb5c4}section{padding:48px;max-width:1200px;width:100%;margin:auto}header{display:flex;justify-content:space-between;align-items:center;margin-bottom:32px}h1{font-size:38px;margin:4px 0}p{color:#9fa8ba}.eyebrow{font-size:12px;letter-spacing:.16em}button{background:#f3f5f8;color:#11151c;border:0;border-radius:10px;padding:12px 18px;font-weight:700}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.stats article,.worker,.empty{border:1px solid #272c38;background:#121620;border-radius:16px;padding:20px}.stats span{display:block;color:#929bad}.stats strong{display:block;font-size:30px;margin-top:10px}.worker{display:flex;align-items:center;gap:16px;margin-top:20px}.avatar{display:grid;place-items:center;width:48px;height:48px;border-radius:14px;background:#282f3d;font-weight:800}.worker h3{margin:0}.worker p{margin:5px 0}.status{font-size:13px;color:#9fe3b1}.secondary{margin-left:auto;background:#202633;color:#e8ebf1}.empty{text-align:center;margin-top:20px;padding:48px}@media(max-width:800px){main{grid-template-columns:1fr}aside{display:none}section{padding:24px}.stats{grid-template-columns:1fr 1fr}header{align-items:flex-start;gap:18px;flex-direction:column}}
+.goal-area{margin-top:20px}.composer,.run{border:1px solid #272c38;background:#121620;border-radius:16px;padding:22px}.composer label{font-weight:800;display:block;margin-bottom:12px}.composer textarea{width:100%;min-height:110px;resize:vertical;border:1px solid #303746;background:#0d1118;color:#f5f7fb;border-radius:12px;padding:14px;font:inherit}.composer-actions,.run-head{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-top:12px}.composer-actions span,small{color:#8f99aa;font-size:12px}.run{margin-top:16px}.run h3{margin:3px 0}.pill{border:1px solid #3c4659;border-radius:999px;padding:6px 10px;font-size:12px}.run ol{list-style:none;padding:0;margin:20px 0}.run li{display:flex;flex-direction:row-reverse;justify-content:flex-end;gap:12px;padding:12px 0;border-top:1px solid #242a35}.run li>span{display:grid;place-items:center;width:28px;height:28px;border-radius:8px;background:#222938}.run small{display:block;margin-top:4px}.activity{border-top:1px solid #242a35;padding-top:12px}.activity p{font-size:13px;margin:7px 0}
+.run-controls{display:flex;align-items:center;gap:12px;margin:16px 0}.run-controls small{color:#aeb7c8}
+.approval-panel{border-top:1px solid #2b3240;margin-top:18px;padding-top:16px}.approval-card{display:flex;justify-content:space-between;align-items:center;gap:18px;border:1px solid #3a4252;border-radius:12px;padding:14px;margin:10px 0}.approval-card p{margin:5px 0}.approval-actions{display:flex;gap:8px;flex-shrink:0}@media(max-width:650px){.approval-card{align-items:flex-start;flex-direction:column}.approval-actions{width:100%}}
+.auth-panel{display:flex;justify-content:space-between;align-items:center;gap:16px;border:1px solid #272c38;background:#10141d;border-radius:14px;padding:14px 16px;margin-bottom:22px}.auth-panel>div small{display:block;margin-top:4px}.auth-panel form{display:flex;gap:8px}.auth-panel input{min-width:230px;border:1px solid #303746;background:#0d1118;color:#f5f7fb;border-radius:10px;padding:11px 12px}@media(max-width:650px){.auth-panel,.auth-panel form{align-items:stretch;flex-direction:column}.auth-panel input{min-width:0;width:100%}}
+/* Atlas calm workspace: progressive disclosure, clear focus and responsive navigation. */
+.atlas-sidebar{padding:28px 20px}.atlas-sidebar h2{margin:0;font-size:25px}.sidebar-caption{font-size:13px;margin:6px 0 26px}.atlas-nav{display:flex;flex-direction:column;gap:6px;line-height:1.4}.atlas-nav a,.atlas-nav summary{display:block;padding:11px 13px;border-radius:10px;color:#d4d9e4;text-decoration:none;font-weight:600;cursor:pointer}.atlas-nav a:hover,.atlas-nav summary:hover,.atlas-nav a:focus-visible,.atlas-nav summary:focus-visible{background:#252c3a;outline-offset:3px}.atlas-nav a[aria-current="page"]{background:#29364a;color:#fff}.atlas-nav details{border-top:1px solid #303746;margin-top:14px;padding-top:12px}.atlas-nav details a{margin-left:12px;font-weight:400}.atlas-main{max-width:1050px;padding-top:36px}.calm-header{margin-bottom:20px}.calm-header h1{font-size:clamp(27px,4vw,38px)}.calm-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:18px 0 30px}.calm-actions a{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:78px;padding:18px;border:1px solid #394353;border-radius:14px;background:#171d29;color:#f6f7fb;text-decoration:none;font-weight:700}.calm-actions a:hover,.calm-actions a:focus-visible{border-color:#8fa7c9;outline-offset:3px}.calm-section h2{font-size:20px;margin:0 0 18px}.calm-expand{margin-top:26px;border:1px solid #303746;border-radius:14px;padding:18px;background:#121620}.calm-expand>summary{cursor:pointer;font-weight:700}.calm-expand[open]>summary{margin-bottom:16px}@media(max-width:800px){.atlas-home{display:block}.atlas-sidebar{display:block;border-right:0;border-bottom:1px solid #303746;padding:16px 20px}.atlas-sidebar h2{font-size:21px}.sidebar-caption{display:none}.atlas-nav{flex-direction:row;flex-wrap:wrap;gap:4px;margin-top:12px}.atlas-nav>a,.atlas-nav>details>summary{padding:9px 10px;font-size:13px}.atlas-nav details{border:0;margin:0;padding:0;position:relative}.atlas-nav details[open]{width:100%}.atlas-nav details a{display:inline-block;margin:3px}.atlas-main{padding:24px 18px}.calm-actions{grid-template-columns:1fr}.calm-actions a{min-height:58px}.atlas-main .stats{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:480px){.atlas-main .stats{grid-template-columns:1fr 1fr}.atlas-main .stats article{padding:14px}.atlas-main .stats strong{font-size:23px}}
+.attention-hub{padding:22px;border:1px solid #354153;border-radius:18px;background:#141b27;margin-bottom:30px}.attention-head h2{font-size:21px;margin:0 0 4px}.attention-head p{font-size:14px;margin:0}.attention-hub .calm-actions{margin:18px 0 0}.attention-hub .calm-actions a{background:#202b3b}.attention-hub .calm-actions a:first-child{border-color:#8097b9}@media(max-width:800px){.attention-hub{padding:16px}}
+
+.task-filters{display:flex;flex-wrap:wrap;gap:8px;margin:20px 0}.task-filters button{background:#202633;color:#dce4ef;border:1px solid #3c4659;padding:10px 14px}.task-filters button[aria-pressed="true"]{background:#e8edf5;color:#11151c;border-color:#e8edf5}.task-list .task-card{border:1px solid #303746;background:#121620;border-radius:14px;padding:18px;margin:12px 0;display:flex;align-items:center;justify-content:space-between;gap:18px}.task-card h3{font-size:17px;line-height:1.4;overflow-wrap:anywhere}.task-card a{white-space:nowrap;color:#b6d1ff}@media(max-width:650px){.task-list .task-card{align-items:flex-start;flex-direction:column}.task-card a{white-space:normal}}
+
+.coworker-directory-card{display:flex;align-items:center;gap:18px;background:#121620;border:1px solid #303746;border-radius:16px;padding:20px;margin:16px 0}.coworker-directory-card h2{font-size:20px;margin:0}.coworker-directory-card p{margin:6px 0 12px}.coworker-directory>button{margin:8px 8px 8px 0}.coworker-directory a{color:#b6d1ff}@media(max-width:500px){.coworker-directory-card{align-items:flex-start}.coworker-directory-card .avatar{flex-shrink:0}}
+
+/* Full-width task, coworker and approval pages: avoid the global dashboard two-column grid. */
+main.run-page{display:block;min-height:100vh;max-width:1100px;margin:0 auto;padding:24px}
+main.run-page>section{max-width:100%;padding:20px 0;margin:0}
+main.run-page nav[aria-label="Breadcrumb"]{line-height:1.5;margin-bottom:22px}
+main.run-page nav[aria-label="Breadcrumb"] a{color:#b6d1ff}
+main.run-page .calm-header{display:block}
+main.run-page .calm-header p{max-width:65ch}
+.task-list,.coworker-directory{min-width:0}
+.task-list .task-card>div{min-width:0}
+.task-list .task-card a{overflow-wrap:anywhere}
+@media(max-width:650px){
+ main.run-page{padding:16px}
+ main.run-page>section{padding:12px 0}
+ main.run-page .calm-header h1{font-size:28px}
+ .task-filters button{flex:1 1 auto}
+ .approval-actions{flex-wrap:wrap}
+ .approval-actions button{flex:1 1 160px;margin:0}
+ .coworker-directory-card{padding:16px}
+}
+
+/* Make navigation and controls usable on touch devices and with keyboard focus. */
+a,button,summary{-webkit-tap-highlight-color:transparent}
+button{cursor:pointer}
+button:disabled{opacity:.6;cursor:not-allowed}
+a:focus-visible,button:focus-visible,summary:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid #a6c8ff;outline-offset:3px}
+@media(max-width:800px){
+ .atlas-nav{overflow:visible}
+ .atlas-nav>a,.atlas-nav>details>summary{min-height:44px;display:flex;align-items:center}
+ .atlas-nav details[open]{background:#151b26;border:1px solid #354153;border-radius:12px;padding:8px}
+ .atlas-nav details[open] a{min-height:44px;display:flex;align-items:center}
+}
+@media(max-width:480px){
+ .atlas-nav>a,.atlas-nav>details>summary{flex:1 1 auto;justify-content:center}
+ .task-list .task-card a{display:inline-flex;min-height:44px;align-items:center}
+ .coworker-directory>button{min-height:44px}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important}}

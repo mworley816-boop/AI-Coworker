@@ -1,0 +1,3 @@
+import {planGoal} from "./planner";
+export type RunEvent={type:string;message:string;at:string};
+export function createRunPreview(goal:string){const now=new Date().toISOString();const steps=planGoal(goal);const events:RunEvent[]=[{type:"run.created",message:"Atlas accepted the goal.",at:now},{type:"plan.created",message:`Atlas created ${steps.length} execution steps.`,at:now}];return {id:crypto.randomUUID(),goal,status:"planned" as const,steps,events};}

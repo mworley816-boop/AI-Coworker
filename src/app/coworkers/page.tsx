@@ -1,0 +1,2 @@
+import CoworkerDirectory from "@/components/CoworkerDirectory";
+export default function CoworkersPage(){return <main className="run-page"><section><nav aria-label="Breadcrumb"><a href="/">← Back to Atlas</a></nav><header className="calm-header"><div><p className="eyebrow">YOUR WORKSPACE</p><h1>Coworkers</h1><p>See who is available and manage their access.</p></div></header><CoworkerDirectory/></section></main>;}
