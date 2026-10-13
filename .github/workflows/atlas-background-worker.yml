@@ -1,0 +1,39 @@
+name: Atlas background worker
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: atlas-background-worker
+  cancel-in-progress: false
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Validate worker secret
+        env:
+          WORKER_SECRET: ${{ secrets.ATLAS_WORKER_SECRET }}
+        run: |
+          if [ -z "$WORKER_SECRET" ]; then
+            echo "::error::Set ATLAS_WORKER_SECRET in GitHub Actions to match WORKER_SECRET in Atlas Cloudflare."
+            exit 1
+          fi
+      - name: Process queued runs and recover completed runs
+        env:
+          WORKER_SECRET: ${{ secrets.ATLAS_WORKER_SECRET }}
+        run: |
+          response=$(curl --fail-with-body --silent --show-error --max-time 240 \
+            -X POST \
+            -H "Authorization: Bearer $WORKER_SECRET" \
+            -H "Content-Type: application/json" \
+            -H "x-worker-batch-size: 5" \
+            "https://ai-coworker-staging.m-worley816.workers.dev/api/worker/run")
+          echo "$response" | jq -e '.ok == true' >/dev/null
+          echo "$response" | jq '{ok,processed,finalized,recovered,requeued,quarantined,idle,durationMs}'
