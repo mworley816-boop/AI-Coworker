@@ -19,6 +19,7 @@ export async function GET(){
  const headers:Record<string,string>={apikey:key,Accept:"application/json"};
  if(!key.startsWith("sb_secret_"))headers.Authorization=`Bearer ${key}`;
  const counts=new Map<string,{house:string;total:number;statuses:Record<string,number>}>();
+ const arabiyatRecords:Array<{id:string;house:string;status:string}>=[];
  let total=0;
  const pageSize=500;
  const maxRows=20000;
@@ -47,10 +48,11 @@ export async function GET(){
     const status=row.status?.trim()||"unspecified";
     const entry=counts.get(house)||{house,total:0,statuses:{}};
     entry.total++;entry.statuses[status]=(entry.statuses[status]||0)+1;
+    if(/arabiyat/i.test(house))arabiyatRecords.push({id:String(row.id),house,status});
     counts.set(house,entry);total++;
    }
-   if(rows.length<pageSize)return NextResponse.json({ok:true,complete:true,total,houses:[...counts.values()].sort((a,b)=>a.house.localeCompare(b.house)),scope:"admin_read_only",note:"Counts reflect catalog rows and recorded statuses, not the number of fragrances released by each house."},{headers:{"cache-control":"no-store"}});
+   if(rows.length<pageSize)return NextResponse.json({ok:true,complete:true,total,houses:[...counts.values()].sort((a,b)=>a.house.localeCompare(b.house)),arabiyatRecords,scope:"admin_read_only",note:"Counts reflect catalog rows and recorded statuses, not the number of fragrances released by each house."},{headers:{"cache-control":"no-store"}});
   }
-  return NextResponse.json({ok:true,complete:false,total,houses:[...counts.values()].sort((a,b)=>a.house.localeCompare(b.house)),scope:"admin_read_only",warning:"ROW_LIMIT_REACHED"},{headers:{"cache-control":"no-store"}});
+  return NextResponse.json({ok:true,complete:false,total,houses:[...counts.values()].sort((a,b)=>a.house.localeCompare(b.house)),arabiyatRecords,scope:"admin_read_only",warning:"ROW_LIMIT_REACHED"},{headers:{"cache-control":"no-store"}});
  }catch{return NextResponse.json({ok:false,error:"CATALOG_UNAVAILABLE"},{status:503});}
 }
