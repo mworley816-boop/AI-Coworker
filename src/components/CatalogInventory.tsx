@@ -15,6 +15,7 @@ export default function CatalogInventory(){
  const [recordSearch,setRecordSearch]=useState("");
  const [comparisonInput,setComparisonInput]=useState("");
  const [comparisonHouse,setComparisonHouse]=useState("all");
+ const [sourceRows,setSourceRows]=useState<Array<{name:string;house:string;sourceUrl:string;sourceType:string;discontinued:string;note:string}>>([]);
  const [importError,setImportError]=useState("");
  const [seedLoading,setSeedLoading]=useState(false);
  const [filter,setFilter]=useState<"all"|"arabiyat">("arabiyat");
@@ -62,6 +63,11 @@ export default function CatalogInventory(){
    const houseIndex=header.findIndex(x=>["house","brand","collection"].includes(x));
    const houses=houseIndex>=0?[...new Set(records.slice(1).map(r=>r[houseIndex]?.trim()).filter((x):x is string=>Boolean(x)))]:[];
    if(houses.length===1)setComparisonHouse(houses[0]);else setComparisonHouse("all");
+   const sourceIndex=header.indexOf("source url");
+   const typeIndex=header.indexOf("source type");
+   const discontinuedIndex=header.indexOf("discontinued status");
+   const noteIndex=header.indexOf("verification note");
+   setSourceRows(records.slice(1).filter(r=>r[nameIndex]?.trim()).map(r=>({name:r[nameIndex].trim(),house:houseIndex>=0?r[houseIndex]??"":"",sourceUrl:sourceIndex>=0?r[sourceIndex]??"":"",sourceType:typeIndex>=0?r[typeIndex]??"":"",discontinued:discontinuedIndex>=0?r[discontinuedIndex]??"Unverified":"Unverified",note:noteIndex>=0?r[noteIndex]??"":"",})));
    const names=records.slice(1).map(r=>r[nameIndex]?.trim()??"").filter(Boolean);
    if(!names.length)throw Error("No fragrance names found");
    setComparisonInput(names.join("\n"));
@@ -80,7 +86,7 @@ export default function CatalogInventory(){
  function exportReviewQueueCsv(){
   if(!data?.ok||!data.complete||!comparison.length)return;
   const escapeCell=(value:string)=>'"'+value.replace(/"/g,'""')+'"';
-  const rows=[["Proposed release","Reference house","Review priority","Possible existing names","Existing concentrations","Research status","Manufacturer source URL","Discontinued status","Reviewer notes"],...comparison.filter(r=>r.exact.length===0).map(r=>[r.name,comparisonHouse==="all"?"Unspecified — verify":comparisonHouse,r.related.length?"Check alternate name":"Investigate absent name",r.related.map(x=>x.name).join("; "),"","Not researched","","Unverified",""])];
+  const rows=[["Proposed release","Reference house","Review priority","Possible existing names","Existing concentrations","Research status","Source URL","Source type","Discontinued status","Reviewer notes"],...comparison.filter(r=>r.exact.length===0).map(r=>[r.name,sourceRows.find(s=>normalize(s.name)===normalize(r.name))?.house||(comparisonHouse==="all"?"Unspecified — verify":comparisonHouse),r.related.length?"Check alternate name":"Investigate absent name",r.related.map(x=>x.name).join("; "),"","Not researched",sourceRows.find(s=>normalize(s.name)===normalize(r.name))?.sourceUrl??"",sourceRows.find(s=>normalize(s.name)===normalize(r.name))?.sourceType??"",sourceRows.find(s=>normalize(s.name)===normalize(r.name))?.discontinued??"Unverified",sourceRows.find(s=>normalize(s.name)===normalize(r.name))?.note??""])];
   const csv="\uFEFF"+rows.map(row=>row.map(escapeCell).join(",")).join("\r\n");
   const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
   const anchor=document.createElement("a");anchor.href=url;anchor.download="scentmarked-arabiyat-review-queue.csv";document.body.appendChild(anchor);anchor.click();anchor.remove();URL.revokeObjectURL(url);
