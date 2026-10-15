@@ -16,7 +16,7 @@ export async function GET(){
  if(!base||!key)return NextResponse.json({ok:false,error:"PRIVATE_CATALOG_READ_NOT_CONFIGURED"},{status:503});
  let origin:URL;
  try{origin=new URL(base);if(origin.protocol!=="https:")throw Error("HTTPS required");}catch{return NextResponse.json({ok:false,error:"INVALID_CATALOG_URL"},{status:503});}
- const headers={apikey:key,Authorization:`Bearer ${key}`,Accept:"application/json"};
+ const headers=key.startsWith("sb_secret_")?{apikey:key,Accept:"application/json"}:{apikey:key,Authorization:`Bearer ${key}`,Accept:"application/json"};
  const counts=new Map<string,{house:string;total:number;statuses:Record<string,number>}>();
  let total=0;
  const pageSize=500;
