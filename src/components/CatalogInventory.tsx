@@ -1,7 +1,7 @@
 "use client";
 import {useEffect,useState} from "react";
 type House={house:string;total:number;statuses:Record<string,number>};
-type Inventory={ok:boolean;complete?:boolean;total?:number;houses?:House[];error?:string;warning?:string};
+type Inventory={ok:boolean;complete?:boolean;total?:number;houses?:House[];arabiyatRecords?:Array<{id:string;house:string;status:string}>;error?:string;warning?:string};
 export default function CatalogInventory(){
  const [data,setData]=useState<Inventory|null>(null);
  const [loading,setLoading]=useState(false);
@@ -27,6 +27,7 @@ export default function CatalogInventory(){
   <div style={{overflowX:"auto"}}><table><thead><tr><th scope="col">Perfume house</th><th scope="col">Records</th><th scope="col">Recorded statuses</th></tr></thead><tbody>
   {visibleHouses.map(h=><tr key={h.house}><th scope="row">{h.house}</th><td>{h.total}</td><td>{Object.entries(h.statuses).map(([status,count])=>`${status}: ${count}`).join(", ")}</td></tr>)}
   </tbody></table></div>
+  {filter==="arabiyat"&&data.arabiyatRecords?.length?<details><summary>Inspect {data.arabiyatRecords.length} Arabiyat catalog record IDs</summary><p>IDs and statuses only. Fragrance names and duplicate detection require a separate verified field mapping.</p><div style={{maxHeight:320,overflow:"auto"}}><table><thead><tr><th>Record ID</th><th>House</th><th>Status</th></tr></thead><tbody>{data.arabiyatRecords.map(r=><tr key={r.id}><td>{r.id}</td><td>{r.house}</td><td>{r.status}</td></tr>)}</tbody></table></div></details>:null}
   <p>These are database counts, not verified manufacturer catalog totals or completeness scores.</p></>:null}
  </section>;
 }
