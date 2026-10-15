@@ -13,6 +13,7 @@ export default function CatalogInventory(){
  const [data,setData]=useState<Inventory|null>(null);
  const [loading,setLoading]=useState(false);
  const [recordSearch,setRecordSearch]=useState("");
+ const [comparisonInput,setComparisonInput]=useState("");
  const [filter,setFilter]=useState<"all"|"arabiyat">("arabiyat");
  const visibleHouses=(data?.houses??[]).filter(h=>filter==="all"||/arabiyat/i.test(h.house));
  const visibleTotal=visibleHouses.reduce((sum,h)=>sum+h.total,0);
@@ -27,6 +28,9 @@ export default function CatalogInventory(){
   const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
   const anchor=document.createElement("a");anchor.href=url;anchor.download="scentmarked-arabiyat-catalog-audit.csv";document.body.appendChild(anchor);anchor.click();anchor.remove();URL.revokeObjectURL(url);
  }
+ const proposedNames=[...new Set(comparisonInput.split(/\r?\n/).map(s=>s.trim()).filter(Boolean))];
+ const catalogNames=new Set((data?.arabiyatRecords??[]).map(r=>normalize(r.name)));
+ const comparison=proposedNames.map(name=>({name,present:catalogNames.has(normalize(name))}));
  const matchingRecords=(data?.arabiyatRecords??[]).filter(r=>[r.id,r.name,r.concentration??"",r.house,r.status].some(value=>value.toLowerCase().includes(recordSearch.trim().toLowerCase())));
  async function refresh(){
   setLoading(true);
@@ -48,6 +52,7 @@ export default function CatalogInventory(){
   <div style={{overflowX:"auto"}}><table><thead><tr><th scope="col">Perfume house</th><th scope="col">Records</th><th scope="col">Recorded statuses</th></tr></thead><tbody>
   {visibleHouses.map(h=><tr key={h.house}><th scope="row">{h.house}</th><td>{h.total}</td><td>{Object.entries(h.statuses).map(([status,count])=>`${status}: ${count}`).join(", ")}</td></tr>)}
   </tbody></table></div>
+  {filter==="arabiyat"&&data.complete?<details><summary>Compare Arabiyat release names against Scentmarked</summary><p>Enter one verified release name per line. Matching is by normalized name only; missing results require manual review for alternate spellings, concentrations, and brand variants. No database changes are made.</p><label htmlFor="arabiyat-compare-names">Release names to check</label><textarea id="arabiyat-compare-names" rows={6} style={{display:"block",width:"100%",maxWidth:620}} value={comparisonInput} onChange={e=>setComparisonInput(e.target.value)} placeholder={"One fragrance name per line"} />{comparison.length>0?<><p>{comparison.filter(r=>r.present).length} matching names; {comparison.filter(r=>!r.present).length} not found by exact normalized name.</p><ul>{comparison.map(r=><li key={r.name}>{r.present?"Found":"Not found — review"}: {r.name}</li>)}</ul></>:null}</details>:null}
   {filter==="arabiyat"&&data.arabiyatRecords?.length?<><details><summary>Data quality checks — {missingConcentration.length} missing concentrations, {unnamedRecords.length} blank names</summary><p>Blank concentration may be legitimate when the manufacturer does not specify one; review before editing.</p>{missingConcentration.length>0?<div style={{maxHeight:260,overflow:"auto"}}><ul>{missingConcentration.map(r=><li key={r.id}>{r.house} — {r.name} ({r.id})</li>)}</ul></div>:<p>No missing concentrations found.</p>}{unnamedRecords.length>0?<p>{unnamedRecords.length} records have blank names and need investigation.</p>:null}</details><details><summary>Potential duplicate records ({duplicateGroups.length} groups)</summary><p>Only matching house, normalized name, and concentration are flagged. Review manually before making changes.</p>{duplicateGroups.length===0?<p>No exact-key duplicate groups found.</p>:<ul>{duplicateGroups.map((group,i)=><li key={i}>{group[0].house} — {group[0].name} ({group[0].concentration??"unspecified"}): {group.length} records ({group.map(r=>r.id).join(", ")})</li>)}</ul>}</details><details><summary>Inspect {data.arabiyatRecords.length} Arabiyat catalog record IDs</summary><p>Names and concentrations are read from the catalog. Similar names are not automatically treated as duplicates.</p><label htmlFor="arabiyat-record-search">Search perfume name, concentration, ID, house, or status</label><input id="arabiyat-record-search" type="search" value={recordSearch} onChange={e=>setRecordSearch(e.target.value)} placeholder="Filter Arabiyat records" /><p>{matchingRecords.length} matching records</p><div style={{maxHeight:320,overflow:"auto"}}><table><thead><tr><th>Perfume</th><th>Concentration</th><th>House</th><th>Status</th><th>Record ID</th></tr></thead><tbody>{matchingRecords.map(r=><tr key={r.id}><td>{r.name}</td><td>{r.concentration??"—"}</td><td>{r.house}</td><td>{r.status}</td><td>{r.id}</td></tr>)}</tbody></table></div></details></>:null}
   <p>These are database counts, not verified manufacturer catalog totals or completeness scores.</p></>:null}
  </section>;
