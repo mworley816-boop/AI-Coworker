@@ -19,14 +19,14 @@ export async function GET(){
  const headers:Record<string,string>={apikey:key,Accept:"application/json"};
  if(!key.startsWith("sb_secret_"))headers.Authorization=`Bearer ${key}`;
  const counts=new Map<string,{house:string;total:number;statuses:Record<string,number>}>();
- const arabiyatRecords:Array<{id:string;house:string;status:string}>=[];
+ const arabiyatRecords:Array<{id:string;name:string;concentration:string|null;house:string;status:string}>=[];
  let total=0;
  const pageSize=500;
  const maxRows=20000;
  try{
   for(let offset=0;offset<maxRows;offset+=pageSize){
    const url=new URL("/rest/v1/perfumes",origin);
-   url.searchParams.set("select","id,status,brands(name)");
+   url.searchParams.set("select","id,name,concentration,status,brands(name)");
    url.searchParams.set("limit",String(pageSize));
    url.searchParams.set("offset",String(offset));
    url.searchParams.set("order","id.asc");
@@ -40,7 +40,7 @@ export async function GET(){
     }catch{}
     return NextResponse.json({ok:false,error:"CATALOG_QUERY_FAILED",httpStatus:response.status,category,...(upstreamCode?{upstreamCode}:{})},{status:502,headers:{"cache-control":"no-store"}});
    }
-   const rows=await response.json() as Array<{id:string;status?:string|null;brands?:{name?:string}|{name?:string}[]|null}>;
+   const rows=await response.json() as Array<{id:string;name:string;concentration?:string|null;status?:string|null;brands?:{name?:string}|{name?:string}[]|null}>;
    if(!Array.isArray(rows))return NextResponse.json({ok:false,error:"INVALID_CATALOG_RESPONSE"},{status:502});
    for(const row of rows){
     const brand=Array.isArray(row.brands)?row.brands[0]:row.brands;
@@ -48,7 +48,7 @@ export async function GET(){
     const status=row.status?.trim()||"unspecified";
     const entry=counts.get(house)||{house,total:0,statuses:{}};
     entry.total++;entry.statuses[status]=(entry.statuses[status]||0)+1;
-    if(/arabiyat/i.test(house))arabiyatRecords.push({id:String(row.id),house,status});
+    if(/arabiyat/i.test(house))arabiyatRecords.push({id:String(row.id),name:row.name,concentration:row.concentration??null,house,status});
     counts.set(house,entry);total++;
    }
    if(rows.length<pageSize)return NextResponse.json({ok:true,complete:true,total,houses:[...counts.values()].sort((a,b)=>a.house.localeCompare(b.house)),arabiyatRecords,scope:"admin_read_only",note:"Counts reflect catalog rows and recorded statuses, not the number of fragrances released by each house."},{headers:{"cache-control":"no-store"}});
