@@ -5,9 +5,11 @@ type Inventory={ok:boolean;complete?:boolean;total?:number;houses?:House[];arabi
 export default function CatalogInventory(){
  const [data,setData]=useState<Inventory|null>(null);
  const [loading,setLoading]=useState(false);
+ const [recordSearch,setRecordSearch]=useState("");
  const [filter,setFilter]=useState<"all"|"arabiyat">("arabiyat");
  const visibleHouses=(data?.houses??[]).filter(h=>filter==="all"||/arabiyat/i.test(h.house));
  const visibleTotal=visibleHouses.reduce((sum,h)=>sum+h.total,0);
+ const matchingRecords=(data?.arabiyatRecords??[]).filter(r=>[r.id,r.house,r.status].some(value=>value.toLowerCase().includes(recordSearch.trim().toLowerCase())));
  async function refresh(){
   setLoading(true);
   try{const response=await fetch("/api/scentmarked-content/catalog-inventory",{cache:"no-store"});setData(await response.json() as Inventory);}
@@ -27,7 +29,7 @@ export default function CatalogInventory(){
   <div style={{overflowX:"auto"}}><table><thead><tr><th scope="col">Perfume house</th><th scope="col">Records</th><th scope="col">Recorded statuses</th></tr></thead><tbody>
   {visibleHouses.map(h=><tr key={h.house}><th scope="row">{h.house}</th><td>{h.total}</td><td>{Object.entries(h.statuses).map(([status,count])=>`${status}: ${count}`).join(", ")}</td></tr>)}
   </tbody></table></div>
-  {filter==="arabiyat"&&data.arabiyatRecords?.length?<details><summary>Inspect {data.arabiyatRecords.length} Arabiyat catalog record IDs</summary><p>IDs and statuses only. Fragrance names and duplicate detection require a separate verified field mapping.</p><div style={{maxHeight:320,overflow:"auto"}}><table><thead><tr><th>Record ID</th><th>House</th><th>Status</th></tr></thead><tbody>{data.arabiyatRecords.map(r=><tr key={r.id}><td>{r.id}</td><td>{r.house}</td><td>{r.status}</td></tr>)}</tbody></table></div></details>:null}
+  {filter==="arabiyat"&&data.arabiyatRecords?.length?<details><summary>Inspect {data.arabiyatRecords.length} Arabiyat catalog record IDs</summary><p>IDs and statuses only. Fragrance names and duplicate detection require a separate verified field mapping.</p><label htmlFor="arabiyat-record-search">Search record ID, house, or status</label><input id="arabiyat-record-search" type="search" value={recordSearch} onChange={e=>setRecordSearch(e.target.value)} placeholder="Filter Arabiyat records" /><p>{matchingRecords.length} matching records</p><div style={{maxHeight:320,overflow:"auto"}}><table><thead><tr><th>Record ID</th><th>House</th><th>Status</th></tr></thead><tbody>{matchingRecords.map(r=><tr key={r.id}><td>{r.id}</td><td>{r.house}</td><td>{r.status}</td></tr>)}</tbody></table></div></details>:null}
   <p>These are database counts, not verified manufacturer catalog totals or completeness scores.</p></>:null}
  </section>;
 }
