@@ -30,7 +30,15 @@ export async function GET(){
    url.searchParams.set("offset",String(offset));
    url.searchParams.set("order","id.asc");
    const response=await fetch(url,{headers,cache:"no-store",signal:AbortSignal.timeout(12000)});
-   if(!response.ok)return NextResponse.json({ok:false,error:"CATALOG_QUERY_FAILED",httpStatus:response.status},{status:502});
+   if(!response.ok){
+    const category=response.status===401?"AUTHENTICATION_REJECTED":response.status===403?"PERMISSION_DENIED":response.status===400?"QUERY_REJECTED":"UPSTREAM_REQUEST_FAILED";
+    let upstreamCode:string|undefined;
+    try{
+     const payload=await response.json() as {code?:unknown};
+     if(typeof payload?.code==="string"&&/^[A-Za-z0-9_]{1,64}$/.test(payload.code))upstreamCode=payload.code;
+    }catch{}
+    return NextResponse.json({ok:false,error:"CATALOG_QUERY_FAILED",httpStatus:response.status,category,...(upstreamCode?{upstreamCode}:{})},{status:502,headers:{"cache-control":"no-store"}});
+   }
    const rows=await response.json() as Array<{id:string;status?:string|null;brands?:{name?:string}|{name?:string}[]|null}>;
    if(!Array.isArray(rows))return NextResponse.json({ok:false,error:"INVALID_CATALOG_RESPONSE"},{status:502});
    for(const row of rows){
