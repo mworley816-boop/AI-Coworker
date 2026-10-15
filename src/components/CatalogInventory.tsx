@@ -19,6 +19,14 @@ export default function CatalogInventory(){
  const duplicateGroups=potentialDuplicates(data?.arabiyatRecords??[]);
  const missingConcentration=(data?.arabiyatRecords??[]).filter(r=>!r.concentration?.trim());
  const unnamedRecords=(data?.arabiyatRecords??[]).filter(r=>!r.name?.trim());
+ function exportArabiyatCsv(){
+  if(!data?.ok||!data.complete||!data.arabiyatRecords)return;
+  const escapeCell=(value:string)=>'"'+value.replace(/"/g,'""')+'"';
+  const rows=[["Record ID","Perfume","Concentration","House","Status"],...data.arabiyatRecords.map(r=>[r.id,r.name,r.concentration??"",r.house,r.status])];
+  const csv="\uFEFF"+rows.map(row=>row.map(escapeCell).join(",")).join("\r\n");
+  const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
+  const anchor=document.createElement("a");anchor.href=url;anchor.download="scentmarked-arabiyat-catalog-audit.csv";document.body.appendChild(anchor);anchor.click();anchor.remove();URL.revokeObjectURL(url);
+ }
  const matchingRecords=(data?.arabiyatRecords??[]).filter(r=>[r.id,r.name,r.concentration??"",r.house,r.status].some(value=>value.toLowerCase().includes(recordSearch.trim().toLowerCase())));
  async function refresh(){
   setLoading(true);
@@ -35,6 +43,7 @@ export default function CatalogInventory(){
   {data?.ok?<><p role="status"><strong>{data.total?.toLocaleString()??0}</strong> catalog records across <strong>{data.houses?.length??0}</strong> houses. {data.complete?"Full inventory retrieved.":"Partial inventory only."}</p>
   {data.warning?<p>{data.warning}</p>:null}
   <div style={{display:"flex",gap:12,alignItems:"center",flexWrap:"wrap"}}><label htmlFor="inventory-house-filter">Catalog focus</label><select id="inventory-house-filter" value={filter} onChange={e=>setFilter(e.target.value as "all"|"arabiyat")}><option value="arabiyat">Arabiyat houses</option><option value="all">All houses</option></select><span>{visibleTotal.toLocaleString()} records in {visibleHouses.length} matching houses</span></div>
+  {filter==="arabiyat"&&data.complete?<button type="button" onClick={exportArabiyatCsv}>Export Arabiyat audit CSV</button>:null}
   {filter==="arabiyat"?<p>Arabiyat is prioritized for the next catalog audit. These counts do not establish whether releases or discontinued fragrances are missing.</p>:null}
   <div style={{overflowX:"auto"}}><table><thead><tr><th scope="col">Perfume house</th><th scope="col">Records</th><th scope="col">Recorded statuses</th></tr></thead><tbody>
   {visibleHouses.map(h=><tr key={h.house}><th scope="row">{h.house}</th><td>{h.total}</td><td>{Object.entries(h.statuses).map(([status,count])=>`${status}: ${count}`).join(", ")}</td></tr>)}
