@@ -1,5 +1,6 @@
 import {NextResponse} from "next/server";
 import {createServerSupabaseClient} from "@/lib/supabase/server";
+import {runtimeEnv} from "@/lib/runtime-env";
 
 /** Read-only catalog inventory. Never writes to the Scentmarked production database. */
 export async function GET(){
@@ -7,10 +8,11 @@ export async function GET(){
  if(!session)return NextResponse.json({ok:false,error:"ATLAS_NOT_CONFIGURED"},{status:503});
  const {data:{user}}=await session.auth.getUser();
  if(!user)return NextResponse.json({ok:false,error:"SIGN_IN_REQUIRED"},{status:401});
- const admins=(process.env.SCENTMARKED_ATLAS_ADMIN_EMAILS??"").split(",").map(s=>s.trim().toLowerCase()).filter(Boolean);
+ const env=await runtimeEnv();
+ const admins=(env.SCENTMARKED_ATLAS_ADMIN_EMAILS??"").split(",").map(s=>s.trim().toLowerCase()).filter(Boolean);
  if(!user.email||!admins.includes(user.email.toLowerCase()))return NextResponse.json({ok:false,error:"ADMIN_REQUIRED"},{status:403});
- const base=process.env.SCENTMARKED_SUPABASE_URL;
- const key=process.env.SCENTMARKED_SUPABASE_SERVICE_ROLE_KEY;
+ const base=env.SCENTMARKED_SUPABASE_URL;
+ const key=env.SCENTMARKED_SUPABASE_SERVICE_ROLE_KEY;
  if(!base||!key)return NextResponse.json({ok:false,error:"PRIVATE_CATALOG_READ_NOT_CONFIGURED"},{status:503});
  let origin:URL;
  try{origin=new URL(base);if(origin.protocol!=="https:")throw Error("HTTPS required");}catch{return NextResponse.json({ok:false,error:"INVALID_CATALOG_URL"},{status:503});}
