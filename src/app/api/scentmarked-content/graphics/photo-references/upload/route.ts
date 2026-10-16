@@ -24,7 +24,7 @@ export async function POST(request:NextRequest){
  const extension=png?"png":"jpg",path="references/"+user.id+"/"+id+"."+extension;
  const {error:uploadError}=await service.storage.from("atlas-graphic-artifacts").upload(path,bytes,{contentType:png?"image/png":"image/jpeg",upsert:false});
  if(uploadError)return NextResponse.json({ok:false,error:"PRIVATE_UPLOAD_FAILED"},{status:500});
- const {error:saveError}=await db.from("atlas_product_photo_references").update({private_storage_path:path}).eq("id",id).eq("owner_user_id",user.id).is("private_storage_path",null);
- if(saveError){await service.storage.from("atlas-graphic-artifacts").remove([path]);return NextResponse.json({ok:false,error:"REFERENCE_LINK_FAILED"},{status:500})}
+ const {data:linked,error:saveError}=await db.from("atlas_product_photo_references").update({private_storage_path:path}).eq("id",id).eq("owner_user_id",user.id).is("private_storage_path",null).select("id").maybeSingle();
+ if(saveError||!linked){await service.storage.from("atlas-graphic-artifacts").remove([path]);return NextResponse.json({ok:false,error:"REFERENCE_LINK_FAILED"},{status:500})}
  return NextResponse.json({ok:true,stored:true,notice:"Original image stored privately in Atlas. Not published or used for generation."},{headers:{"cache-control":"no-store"}});
 }
