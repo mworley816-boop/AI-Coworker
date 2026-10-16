@@ -11,6 +11,9 @@ export default function GraphicCompositePreview({referenceId,backgroundJobId}:{r
  const [saving,setSaving]=useState(false);
  const [verifiedBottleId,setVerifiedBottleId]=useState<string|null>(null);
  const [verifiedBackgroundId,setVerifiedBackgroundId]=useState<string|null>(null);
+ const [cutoutFile,setCutoutFile]=useState<File|null>(null);
+ const [cutoutTolerance,setCutoutTolerance]=useState(35);
+ const [cutoutBusy,setCutoutBusy]=useState(false);
  const [scale,setScale]=useState(58);
  const [vertical,setVertical]=useState(55);
  const [message,setMessage]=useState("Select a background and an authorized transparent PNG bottle cutout.");
