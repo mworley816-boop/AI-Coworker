@@ -20,5 +20,5 @@ export async function GET(request:NextRequest){
   {label:"Search manufacturer product pages",url:"https://www.google.com/search?q="+encodeURIComponent(brand+" "+name+" official site perfume")},
   {label:"Search product photos on Bing",url:"https://www.bing.com/images/search?q="+encodeURIComponent(query)}
  ];
- return NextResponse.json({ok:true,query,searches,status:"SOURCES_NOT_YET_VERIFIED",canUseImages:false,notice:"These are research links, not verified manufacturer images. Confirm exact product identity and image usage rights before using or publishing."},{headers:{"cache-control":"no-store"}});
+ return NextResponse.json({ok:true,query,searches,candidates,status:"SOURCES_NOT_YET_VERIFIED",canUseImages:false,notice:"These are research links, not verified manufacturer images. Confirm exact product identity and image usage rights before using or publishing."},{headers:{"cache-control":"no-store"}});
 }
