@@ -56,7 +56,9 @@ export default function CatalogInventory(){
    const labels:Record<string,string>={needs_research:"Needs research",existing_alternate:"Existing under alternate name",candidate:"Candidate for catalog creation",excluded:"Exclude — insufficient evidence"};
    for(const row of result.rows??[]){const key=reviewKey(row.house,row.perfume_name);if(labels[row.decision])decisions[key]=labels[row.decision];notes[key]=row.reviewer_notes??"";}
    setReviewDecisions(prev=>({...prev,...decisions}));setReviewNotes(prev=>({...prev,...notes}));
-   setCloudStatus(`Loaded ${result.rows?.length??0} saved reviews from Atlas`);
+   const counts=new Map<string,number>();for(const row of result.rows??[])counts.set(row.house,(counts.get(row.house)??0)+1);
+   const byHouse=[...counts.entries()].sort((a,b)=>a[0].localeCompare(b[0])).map(([house,count])=>`${house}: ${count}`).join("; ");
+   setCloudStatus(`Loaded ${result.rows?.length??0} saved reviews from Atlas${byHouse?` (${byHouse})`:""}. Review decisions and notes are matched by house and fragrance name.`);
   }catch(error){setCloudStatus(error instanceof Error?error.message:"Unable to load reviews");}
   finally{setCloudBusy(false);}
  }
