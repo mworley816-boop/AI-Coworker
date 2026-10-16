@@ -13,7 +13,7 @@ export async function GET(request:NextRequest){
  const id=request.nextUrl.searchParams.get("referenceId")??"";if(!uuid.test(id))return NextResponse.json({ok:false,error:"INVALID_REFERENCE_ID"},{status:400});
  const {data:ref,error}=await db.from("atlas_product_photo_references").select("private_storage_path,identity_verified,rights_cleared").eq("id",id).eq("owner_user_id",user.id).single();
  if(error||!ref?.private_storage_path||!ref.identity_verified||!ref.rights_cleared)return NextResponse.json({ok:false,error:"REFERENCE_NOT_AVAILABLE"},{status:404});
- if(!new RegExp("^references/"+user.id.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"/"+id+"\\.(png|jpg)$","i").test(ref.private_storage_path))return NextResponse.json({ok:false,error:"INVALID_STORAGE_PATH"},{status:400});
+ if(![ "references/"+user.id+"/"+id+".png", "references/"+user.id+"/"+id+".jpg" ].includes(ref.private_storage_path))return NextResponse.json({ok:false,error:"INVALID_STORAGE_PATH"},{status:400});
  const {data,error:downloadError}=await service.storage.from("atlas-graphic-artifacts").download(ref.private_storage_path);
  if(downloadError||!data)return NextResponse.json({ok:false,error:"REFERENCE_DOWNLOAD_FAILED"},{status:502});
  if(data.size>4_000_000)return NextResponse.json({ok:false,error:"REFERENCE_TOO_LARGE"},{status:413});
