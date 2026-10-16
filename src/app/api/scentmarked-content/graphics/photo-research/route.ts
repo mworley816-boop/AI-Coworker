@@ -15,6 +15,7 @@ export async function GET(request:NextRequest){
  const name=(request.nextUrl.searchParams.get("name")??"").trim();
  if(brand.length<2||brand.length>120||name.length<2||name.length>160)return NextResponse.json({ok:false,error:"INVALID_PERFUME_IDENTITY"},{status:400});
  const query=[brand,name,"official perfume bottle product image"].join(" ");
+ const candidates=[{label:"Manufacturer candidates",url:"https://www.google.com/search?q="+encodeURIComponent(brand+" "+name+" official manufacturer"),sourceType:"manufacturer_candidate",verified:false},{label:"Bottle image candidates",url:"https://www.google.com/search?tbm=isch&q="+encodeURIComponent(brand+" "+name+" official perfume bottle"),sourceType:"image_search",verified:false},{label:"Retail comparison",url:"https://www.google.com/search?q="+encodeURIComponent(brand+" "+name+" perfume retailer"),sourceType:"retailer_comparison",verified:false}];
  const searches=[
   {label:"Search official product photos",url:"https://www.google.com/search?tbm=isch&q="+encodeURIComponent(query)},
   {label:"Search manufacturer product pages",url:"https://www.google.com/search?q="+encodeURIComponent(brand+" "+name+" official site perfume")},
