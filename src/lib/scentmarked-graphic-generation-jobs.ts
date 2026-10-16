@@ -12,7 +12,7 @@ export function planGraphicGenerationJobs(inputs:GraphicJobInput[],limit=10):{qu
   if(seen.has(key)){held.push({index,reason:"DUPLICATE_GRAPHIC_JOB"});return;}seen.add(key);
   if(queued.length>=cap){held.push({index,reason:"BATCH_LIMIT_REACHED"});return;}
   queued.push({id:"graphic-"+index+"-"+id,perfumeId:id,brand,perfumeName:name,format:item.format,status:"queued",requiresIdentityReview:true,requiresRightsReview:true,prompt:item.format==="product-card"?
-   "Create original editorial perfume-inspired artwork for "+brand+" "+name+". Do not invent brand logos, bottle labels, or packaging. Do not imply the illustration is an official product photograph.":
+   "Create a premium product-card BACKGROUND PLATE inspired by "+brand+" "+name+". Do not depict any perfume bottle, product packaging, logos, labels, or text. Leave clear negative space in the center for compositing a separately verified authentic product photograph. This is background artwork only, not a product photograph.":
    "Create an original fragrance-themed editorial banner inspired by "+brand+" "+name+". Avoid trademarked logos, counterfeit bottle imagery, and misleading official branding."});
  });
  return {queued,held};
