@@ -14,7 +14,7 @@ export async function GET(request:NextRequest){
  const a=await auth();if(a.code!==200)return NextResponse.json({ok:false,error:"NOT_AUTHORIZED"},{status:a.code});
  const id=request.nextUrl.searchParams.get("perfumeId")??"";
  if(!uuid.test(id))return NextResponse.json({ok:false,error:"INVALID_PERFUME_ID"},{status:400});
- const {data,error}=await a.db.from("atlas_product_photo_references").select("id,perfume_id,brand,perfume_name,source_url,identity_verified,rights_cleared,created_at").eq("owner_user_id",a.user.id).eq("perfume_id",id).order("created_at",{ascending:false}).limit(20);
+ const {data,error}=await a.db.from("atlas_product_photo_references").select("id,perfume_id,brand,perfume_name,source_url,private_storage_path,identity_verified,rights_cleared,created_at").eq("owner_user_id",a.user.id).eq("perfume_id",id).order("created_at",{ascending:false}).limit(20);
  return NextResponse.json(error?{ok:false,error:"REFERENCE_READ_FAILED"}:{ok:true,references:data??[]},{status:error?500:200,headers:{"cache-control":"no-store"}});
 }
 export async function POST(request:NextRequest){
