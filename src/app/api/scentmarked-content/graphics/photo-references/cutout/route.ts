@@ -25,6 +25,11 @@ export async function POST(request:NextRequest){
  if(ref.cutout_storage_path)return NextResponse.json({ok:false,error:"CUTOUT_ALREADY_STORED"},{status:409});
  const bytes=new Uint8Array(await file.arrayBuffer());
  if(![137,80,78,71,13,10,26,10].every((n,i)=>bytes[i]===n))return NextResponse.json({ok:false,error:"PNG_REQUIRED"},{status:415});
+ const view=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength);
+ // PNG IHDR: reject truncated, oversized, indexed, grayscale, or RGB-only files.
+ if(bytes.length<33||view.getUint32(8)!==13||String.fromCharCode(...bytes.slice(12,16))!=="IHDR")return NextResponse.json({ok:false,error:"INVALID_PNG_HEADER"},{status:415});
+ const width=view.getUint32(16),height=view.getUint32(20),depth=bytes[24],color=bytes[25],compression=bytes[26],filter=bytes[27],interlace=bytes[28];
+ if(width<1||height<1||width>4096||height>4096||width*height>8_000_000||depth!==8||color!==6||compression!==0||filter!==0||interlace!==0)return NextResponse.json({ok:false,error:"RGBA_PNG_REQUIRED"},{status:415});
  const path="references/"+user.id+"/"+id+"-cutout.png";
  const {error:uploadError}=await service.storage.from("atlas-graphic-artifacts").upload(path,bytes,{contentType:"image/png",upsert:false});
  if(uploadError)return NextResponse.json({ok:false,error:"PRIVATE_UPLOAD_FAILED"},{status:500});
