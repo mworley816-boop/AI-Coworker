@@ -12,7 +12,7 @@ export default function GraphicCompositePreview({referenceId,backgroundJobId,onC
  const [verifiedBottleId,setVerifiedBottleId]=useState<string|null>(null);
  const [verifiedBackgroundId,setVerifiedBackgroundId]=useState<string|null>(null);
  const [cutoutFile,setCutoutFile]=useState<File|null>(null);
- const [cutoutTolerance,setCutoutTolerance]=useState(35);
+ const [cutoutTolerance,setCutoutTolerance]=useState(25);
  const [cutoutBusy,setCutoutBusy]=useState(false);
  const [cutoutSaving,setCutoutSaving]=useState(false);
  const [preparedCutout,setPreparedCutout]=useState<File|null>(null);
