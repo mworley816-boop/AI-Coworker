@@ -1,0 +1,32 @@
+name: Atlas Staging Worker Scheduler
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  invoke-worker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      ATLAS_STAGING_WORKER_URL: ${{ vars.ATLAS_STAGING_WORKER_URL }}
+      ATLAS_STAGING_WORKER_SECRET: ${{ secrets.ATLAS_STAGING_WORKER_SECRET }}
+    steps:
+      - name: Check scheduler configuration
+        run: |
+          if [ -z "$ATLAS_STAGING_WORKER_URL" ] || [ -z "$ATLAS_STAGING_WORKER_SECRET" ]; then
+            echo "::error::Configure ATLAS_STAGING_WORKER_URL (variable) and ATLAS_STAGING_WORKER_SECRET (secret)."
+            exit 1
+          fi
+          case "$ATLAS_STAGING_WORKER_URL" in
+            https://*) ;;
+            *) echo "::error::Staging worker URL must use HTTPS."; exit 1 ;;
+          esac
+      - name: Invoke worker batch
+        run: |
+          curl --fail-with-body --silent --show-error --retry 2 --retry-delay 5 --max-time 120 \
+            --request POST \
+            --header "Authorization: Bearer $ATLAS_STAGING_WORKER_SECRET" \
+            --header "x-worker-batch-size: 5" \
+            "$ATLAS_STAGING_WORKER_URL"
