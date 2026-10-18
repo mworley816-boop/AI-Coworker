@@ -43,7 +43,7 @@ export default function GraphicCompositePreview({referenceId,backgroundJobId,onC
  if(source.type==="image/png"&&await hasTransparentPixels(source)){if(run!==cutoutRun.current)return;setBottle(source);setPreparedCutout(source);setVerifiedBottleId(null);setSubmittedComposite(false);setMessage("Transparent PNG detected: background removal skipped, original image pixels preserved. Inspect the bottle, labels, and edges before saving.");return;}
  const url=URL.createObjectURL(source);try{
  const img=new Image();img.src=url;await img.decode();
- if(img.width*img.height>12_000_000)throw Error("Photo too large; use a smaller source image");
+ if(img.width*img.height>4_000_000)throw Error("Photo exceeds the 4-megapixel local cutout limit. Resize the photo before preparing it to keep the browser responsive.");
  const c=document.createElement("canvas");c.width=img.width;c.height=img.height;const ctx=c.getContext("2d",{willReadFrequently:true});if(!ctx)throw Error("Canvas unavailable");ctx.drawImage(img,0,0);
  const frame=ctx.getImageData(0,0,c.width,c.height),d=frame.data,w=c.width,h=c.height;
  const corners=[[0,0],[w-1,0],[0,h-1],[w-1,h-1]];const rgb=[0,1,2].map(k=>Math.round(corners.reduce((sum,[x,y])=>sum+d[(y*w+x)*4+k],0)/4));
