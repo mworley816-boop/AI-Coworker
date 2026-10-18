@@ -18,17 +18,19 @@ export async function processQueuedRunBatch(supabase:SupabaseLike,workerId:strin
   const recovered=typeof recovery.data==="number"?recovery.data:0;
   const results:unknown[]=[];
   const failures:unknown[]=[];
+  let succeeded=0;
   const limit=Math.max(1,Math.min(maxRuns,20));
   for(let index=0;index<limit;index+=1){
     const result=await processNextQueuedRun(supabase,`${workerId}:${index}`);
     if(!result.ok){
       failures.push(result);
-      if(!("runId" in result))return {ok:false as const,processed:results.length,finalized,reportsRecovered,recovered,requeued,quarantined,results,failures,reason:"Worker could not claim the next run"};
+      if(!("runId" in result))return {ok:false as const,processed:results.length,succeeded,failed:failures.length,finalized,reportsRecovered,recovered,requeued,quarantined,results,failures,reason:"Worker could not claim the next run"};
       results.push(result);
       continue;
     }
-    if("idle" in result&&result.idle)return {ok:failures.length===0,processed:results.length,finalized,reportsRecovered,recovered,requeued,quarantined,idle:true as const,results,failures};
+    if("idle" in result&&result.idle)return {ok:failures.length===0,processed:results.length,succeeded,failed:failures.length,finalized,reportsRecovered,recovered,requeued,quarantined,idle:true as const,results,failures};
     results.push(result);
+    succeeded+=1;
   }
-  return {ok:failures.length===0,processed:results.length,finalized,reportsRecovered,recovered,requeued,quarantined,idle:false as const,results,failures};
+  return {ok:failures.length===0,processed:results.length,succeeded,failed:failures.length,finalized,reportsRecovered,recovered,requeued,quarantined,idle:false as const,results,failures};
 }
