@@ -30,10 +30,10 @@ export async function processQueuedRunBatch(supabase:SupabaseLike,workerId:strin
       results.push(result);
       continue;
     }
-    if("idle" in result&&result.idle)return {ok:failures.length===0,processed:results.length,succeeded,failed:failures.length,finalized,reportsRecovered,recovered,requeued,quarantined,idle:true as const,results,failures};
+    if("idle" in result&&result.idle)return {ok:failures.length===0,processed:results.length,succeeded,deferred,failed:failures.length,finalized,reportsRecovered,recovered,requeued,quarantined,idle:true as const,results,failures};
     results.push(result);
     if(classifyWorkerOutcome(result)==="completed")succeeded+=1;
     else deferred+=1;
   }
-  return {ok:failures.length===0,processed:results.length,succeeded,failed:failures.length,finalized,reportsRecovered,recovered,requeued,quarantined,idle:false as const,results,failures};
+  return {ok:failures.length===0,processed:results.length,succeeded,deferred,failed:failures.length,finalized,reportsRecovered,recovered,requeued,quarantined,idle:false as const,results,failures};
 }
