@@ -10,10 +10,5 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
-  "main": ".open-next/worker.js",
-  "triggers": {
-    "crons": [
-      "*/15 * * * *"
-    ]
-  }
+  "main": ".open-next/worker.js"
 }
