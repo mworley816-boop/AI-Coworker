@@ -16,6 +16,12 @@ export async function processNextQueuedRun(supabase:SupabaseLike,workerId:string
     const result=await executeRunWithClient(run.id,supabase,{leaseOwner:workerId});
     if(leaseLost)return {ok:false as const,runId:run.id,reason:"Worker execution lease was lost",result};
     return {ok:result.ok,runId:run.id,result};
+  }catch(error){
+    console.error("Atlas worker run execution failed unexpectedly",{runId:run.id,workerId,error});
+    try{
+      await supabase.from("activity_logs").insert({run_id:run.id,event_type:"run.execution_exception",message:"Background worker encountered an unexpected execution error; reconciliation may be required.",metadata:{workerId}});
+    }catch{/* Preserve the original execution failure. */}
+    return {ok:false as const,runId:run.id,reason:"Run execution failed unexpectedly"};
   }finally{
     if(heartbeat)clearInterval(heartbeat);
     const released=await releaseRunLease(supabase,run.id,workerId);
