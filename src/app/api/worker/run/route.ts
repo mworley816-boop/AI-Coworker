@@ -16,7 +16,12 @@ export async function POST(request:Request){
   const batchSize=Number.isFinite(requestedBatch)?Math.max(1,Math.min(Math.floor(requestedBatch),20)):5;
   const workerId=`worker:${crypto.randomUUID()}`;
   const startedAt=Date.now();
-  const result=await processQueuedRunBatch(supabase,workerId,batchSize);
-  const durationMs=Date.now()-startedAt;
-  return NextResponse.json({...result,workerId,batchSize,durationMs},{status:result.ok?200:500});
+  try{
+    const result=await processQueuedRunBatch(supabase,workerId,batchSize);
+    const durationMs=Date.now()-startedAt;
+    return NextResponse.json({...result,workerId,batchSize,durationMs},{status:result.ok?200:500});
+  }catch(error){
+    console.error("Atlas background worker batch failed",error);
+    return NextResponse.json({ok:false,reason:"Worker batch failed unexpectedly",workerId,batchSize,durationMs:Date.now()-startedAt},{status:500});
+  }
 }
