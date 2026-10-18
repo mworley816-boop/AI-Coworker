@@ -17,12 +17,18 @@ export async function processQueuedRunBatch(supabase:SupabaseLike,workerId:strin
   if(recovery.error)return {ok:false as const,processed:0,finalized,reportsRecovered,results:[],reason:"Expired run leases could not be recovered"};
   const recovered=typeof recovery.data==="number"?recovery.data:0;
   const results:unknown[]=[];
+  const failures:unknown[]=[];
   const limit=Math.max(1,Math.min(maxRuns,20));
   for(let index=0;index<limit;index+=1){
     const result=await processNextQueuedRun(supabase,`${workerId}:${index}`);
-    if(!result.ok)return {ok:false as const,processed:results.length,finalized,reportsRecovered,recovered,requeued,quarantined,results,reason:"Worker batch stopped after a run failed",failure:result};
-    if("idle" in result&&result.idle)return {ok:true as const,processed:results.length,finalized,reportsRecovered,recovered,requeued,quarantined,idle:true as const,results};
+    if(!result.ok){
+      failures.push(result);
+      if(!("runId" in result))return {ok:false as const,processed:results.length,finalized,reportsRecovered,recovered,requeued,quarantined,results,failures,reason:"Worker could not claim the next run"};
+      results.push(result);
+      continue;
+    }
+    if("idle" in result&&result.idle)return {ok:failures.length===0,processed:results.length,finalized,reportsRecovered,recovered,requeued,quarantined,idle:true as const,results,failures};
     results.push(result);
   }
-  return {ok:true as const,processed:results.length,finalized,reportsRecovered,recovered,requeued,quarantined,idle:false as const,results};
+  return {ok:failures.length===0,processed:results.length,finalized,reportsRecovered,recovered,requeued,quarantined,idle:false as const,results,failures};
 }
