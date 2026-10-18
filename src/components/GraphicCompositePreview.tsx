@@ -53,6 +53,7 @@ export default function GraphicCompositePreview({referenceId,backgroundJobId,onC
  while(head<tail){const i=queue[head++],x=i%w,y=(i-x)/w;if(x>0)add(x-1,y);if(x<w-1)add(x+1,y);if(y>0)add(x,y-1);if(y<h-1)add(x,y+1)}
  if(tail<w*h*.01)throw Error("Only "+(100*tail/(w*h)).toFixed(1)+"% of the photo matched the edge background. Try a slightly higher tolerance than "+tolerance+" if the background is uniform, or use a manually prepared transparent PNG.");
  if(tail>w*h*.80)throw Error("Automatic removal would erase "+Math.round(tail/(w*h)*100)+"% of this photo. Lower the background color tolerance below "+tolerance+" and retry, or use a manually prepared transparent PNG.");
+ const centerX=Math.floor(w/2),centerY=Math.floor(h/2),centerIndex=centerY*w+centerX;if(d[centerIndex*4+3]===0)throw Error("Background removal reached the center of the photograph, which may erase a transparent or light-colored perfume bottle. Lower the tolerance or use a manually prepared transparent PNG.");
  ctx.putImageData(frame,0,0);const blob=await new Promise<Blob|null>(resolve=>c.toBlob(resolve,"image/png"));if(!blob)throw Error("Could not export cutout");
  const prepared=new File([blob],"local-bottle-cutout.png",{type:"image/png"});if(run!==cutoutRun.current)return;setBottle(prepared);setPreparedCutout(prepared);setVerifiedBottleId(null);setMessage("Local edge-background removal complete. Inspect bottle edges and transparent areas. This cutout is not automatically rights-cleared or saved as an approved reference.");
  }finally{URL.revokeObjectURL(url)}
