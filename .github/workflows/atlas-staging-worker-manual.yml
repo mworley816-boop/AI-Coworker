@@ -13,8 +13,12 @@ jobs:
     steps:
       - name: Validate configuration
         run: |
-          if [ -z "$ATLAS_STAGING_WORKER_URL" ] || [ -z "$ATLAS_STAGING_WORKER_SECRET" ]; then
-            echo "::error::Missing Atlas staging worker URL or secret."
+          if [ -z "$ATLAS_STAGING_WORKER_URL" ]; then
+            echo "::error::ATLAS_STAGING_WORKER_URL is empty or unavailable to this workflow."
+            exit 1
+          fi
+          if [ -z "$ATLAS_STAGING_WORKER_SECRET" ]; then
+            echo "::error::ATLAS_STAGING_WORKER_SECRET is empty or unavailable to this workflow."
             exit 1
           fi
           case "$ATLAS_STAGING_WORKER_URL" in
