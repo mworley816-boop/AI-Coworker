@@ -1,5 +1,6 @@
 import type {SupabaseLike} from "@/lib/tools/authorize";
 import {processNextQueuedRun} from "@/lib/execution/worker";
+import {classifyWorkerOutcome} from "./worker-outcome";
 
 export async function processQueuedRunBatch(supabase:SupabaseLike,workerId:string,maxRuns=5){
   const finalization=await supabase.rpc("finalize_completed_stalled_runs");
@@ -31,7 +32,7 @@ export async function processQueuedRunBatch(supabase:SupabaseLike,workerId:strin
     }
     if("idle" in result&&result.idle)return {ok:failures.length===0,processed:results.length,succeeded,failed:failures.length,finalized,reportsRecovered,recovered,requeued,quarantined,idle:true as const,results,failures};
     results.push(result);
-    if("result" in result&&result.result&&"status" in result.result&&result.result.status==="completed")succeeded+=1;
+    if(classifyWorkerOutcome(result)==="completed")succeeded+=1;
     else deferred+=1;
   }
   return {ok:failures.length===0,processed:results.length,succeeded,failed:failures.length,finalized,reportsRecovered,recovered,requeued,quarantined,idle:false as const,results,failures};
