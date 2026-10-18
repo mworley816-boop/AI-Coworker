@@ -40,6 +40,7 @@ export default function GraphicCompositePreview({referenceId,backgroundJobId,onC
   return()=>{cancelled=true;urls.forEach(u=>URL.revokeObjectURL(u))}
  },[background,bottle,scale,vertical]);
  async function prepareSimpleCutout(){if(!cutoutFile)return;setCutoutBusy(true);try{
+ if(cutoutFile.type==="image/png"&&await hasTransparentPixels(cutoutFile)){setBottle(cutoutFile);setPreparedCutout(cutoutFile);setVerifiedBottleId(null);setSubmittedComposite(false);setMessage("Source PNG already has sufficient transparency. Inspect the bottle and edges before saving it as a cutout.");return;}
  const url=URL.createObjectURL(cutoutFile);try{
  const img=new Image();img.src=url;await img.decode();
  if(img.width*img.height>12_000_000)throw Error("Photo too large; use a smaller source image");
