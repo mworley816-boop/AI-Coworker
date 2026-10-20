@@ -2,6 +2,9 @@
   "name": "atlas-research-proxy",
   "main": "src/index.ts",
   "compatibility_date": "2026-10-18",
+  "observability": {
+    "logs": { "enabled": true }
+  },
   "vars": {
     "CLOUDFLARE_AI_GATEWAY_ID": "default"
   }
