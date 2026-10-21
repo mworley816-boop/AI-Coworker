@@ -6,6 +6,9 @@
     "nodejs_compat"
   ],
   "keep_vars": true,
+  "services": [
+    { "binding": "ATLAS_RESEARCH_PROXY", "service": "atlas-research-proxy" }
+  ],
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
