@@ -57,12 +57,17 @@ export default {
     try { payload = await response.json(); } catch { return json({ error: "Invalid provider response" }, 502); }
     const result = payload && typeof payload === "object" ? payload as Record<string, unknown> : {};
     const body = result.result && typeof result.result === "object" ? result.result as Record<string, unknown> : result;
-    const items = Array.isArray(body.items) ? body.items : [];
+    const items = Array.isArray(body.items) ? body.items : Array.isArray(body.results) ? body.results : Array.isArray(body.data) ? body.data : Array.isArray(result.items) ? result.items : [];
     const results = items.slice(0, limit).flatMap((item: SearchItem) => {
-      if (typeof item?.url !== "string" || !/^https?:\/\//i.test(item.url)) return [];
+      const link = typeof item?.url === "string" ? item.url : typeof (item as Record<string,unknown>)?.link === "string" ? (item as Record<string,unknown>).link as string : "";
+      if (!/^https?:\/\//i.test(link)) return [];
       return [{ title: typeof item.title === "string" ? item.title : "Source",
-        url: item.url, content: typeof item.description === "string" ? item.description : "" }];
+        url: link, content: typeof item.description === "string" ? item.description : typeof (item as Record<string,unknown>).snippet === "string" ? (item as Record<string,unknown>).snippet as string : "" }];
     });
+    if (results.length === 0) {
+      // Only return structural diagnostics; never expose source content or credentials.
+      return json({error:"Search provider returned no usable sources",provider_shape:{top_level_keys:Object.keys(result).slice(0,12),result_keys:Object.keys(body).slice(0,12),item_count:items.length,first_item_keys:items[0] && typeof items[0] === "object" ? Object.keys(items[0]).slice(0,12) : []}},502);
+    }
     return json({ results });
   }
 };
