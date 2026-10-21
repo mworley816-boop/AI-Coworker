@@ -4,6 +4,25 @@ import {createClient} from "@/lib/supabase/client";
 type Step={title:string;status:string;kind?:string;output:Record<string,unknown>|null};
 type Source={title:string;url:string;snippet:string};
 type StoredReport={summary?:string;deliverable?:unknown;sources?:unknown};
+type ClaimEvidence={claim:string;sourceUrls:string[];status:"unverified"|"single_source"|"third_party_corroborated"|"manufacturer_confirmed"|"conflicting";notes?:string};
+function extractClaims(value:unknown):ClaimEvidence[]{
+ if(!value||typeof value!=="object"||Array.isArray(value))return [];
+ const row=value as Record<string,unknown>;
+ const nested=row.data&&typeof row.data==="object"&&!Array.isArray(row.data)?row.data as Record<string,unknown>:null;
+ const candidate=row.claimEvidence??row.claims??nested?.claimEvidence??nested?.claims;
+ if(!Array.isArray(candidate))return [];
+ const allowed=new Set(["unverified","single_source","third_party_corroborated","manufacturer_confirmed","conflicting"]);
+ return candidate.flatMap((item):ClaimEvidence[]=>{
+  if(!item||typeof item!=="object"||Array.isArray(item))return [];
+  const c=item as Record<string,unknown>;
+  const claim=typeof c.claim==="string"?c.claim.trim():typeof c.text==="string"?c.text.trim():"";
+  if(!claim)return [];
+  const sourceUrls=Array.isArray(c.sourceUrls)?c.sourceUrls.filter((x):x is string=>typeof x==="string"):Array.isArray(c.sources)?c.sources.filter((x):x is string=>typeof x==="string"):[];
+  // Treat producer-supplied statuses as provisional until there is a human review workflow.
+  const status=typeof c.status==="string"&&allowed.has(c.status)?c.status as ClaimEvidence["status"]:"unverified";
+  return [{claim:claim.slice(0,600),sourceUrls:sourceUrls.slice(0,15),status,notes:typeof c.notes==="string"?c.notes.slice(0,500):undefined}];
+ }).slice(0,100);
+}
 type EvidenceType="Official manufacturer candidate"|"Third-party source"|"Unclassified source";
 function evidenceType(url:string):EvidenceType{
  // Do not infer official status from a brand word in the URL.
@@ -42,9 +61,12 @@ export default function CompletionReport({runId}:{runId:string}){
  const deliverable=typeof report.stored?.deliverable==="string"?report.stored.deliverable:null;
  const sourceCandidates=[...extractSources(report.stored),...report.steps.filter(s=>s.kind==="research").flatMap(s=>extractSources(s.output))];
  const seen=new Set<string>();const sources=sourceCandidates.filter(s=>{if(seen.has(s.url))return false;seen.add(s.url);return true;}).slice(0,30);
+ const claims=[...extractClaims(report.stored),...report.steps.filter(s=>s.kind==="research").flatMap(s=>extractClaims(s.output))];
+ const sourceMap=new Map(sources.map(source=>[source.url,source]));
  const researchCompleted=report.steps.some(s=>s.kind==="research"&&s.status==="completed");
  return <section className="completion-report"><h4>Run report · {report.status}</h4><p>{report.stored?.summary??`${completed.length} of ${report.steps.length} planned steps completed.`}</p>
  {deliverable&&<div><h4>Finished deliverable</h4><p style={{whiteSpace:"pre-wrap"}}>{deliverable}</p></div>}
  {(sources.length>0||researchCompleted)&&<div><h4>Research evidence</h4>{sources.length>0?<><p>{sources.length} recorded source link{sources.length===1?"":"s"}. Source links are leads, not proof that individual claims are correct.</p><p><strong>Evidence status:</strong> {evidenceStatus(sources)}</p><p>Manufacturer-confirmed, third-party-corroborated, and conflicting claims require claim-level review. No claim is automatically promoted based only on matching search results.</p><ul>{sources.map(s=><li key={s.url}><a href={s.url} target="_blank" rel="noopener noreferrer">{s.title}</a>{s.snippet&&<p>{s.snippet}</p>}<small>{evidenceType(s.url)} · Unverified claim support</small></li>)}</ul></>:<p>Research completed, but no source URLs were found in the stored report or research step output. Evidence may not have been persisted; this run cannot be source-verified from the report.</p>}</div>}
+ {(researchCompleted||claims.length>0)&&<div><h4>Claim verification</h4>{claims.length>0?<><p>{claims.length} recorded claim{claims.length===1?"":"s"}. Statuses are provisional and require review; linked sources do not establish that a claim is true.</p><ul>{claims.map((c,i)=><li key={i}><strong>{c.claim}</strong><p><small>Recorded status: {c.status.replaceAll("_"," ")} · Not independently verified by Atlas</small></p>{c.notes&&<p>{c.notes}</p>}{c.sourceUrls.length?<ul>{c.sourceUrls.map(url=>{const source=sourceMap.get(url);return source?<li key={url}><a href={source.url} target="_blank" rel="noopener noreferrer">{source.title}</a></li>:<li key={url}><small>Claim cites a URL not found in saved research evidence; citation not displayed.</small></li>;})}</ul>:<p><small>No source links recorded for this claim.</small>}</li>)}</ul></>:<p>No structured, source-linked claims were saved for this run. Atlas cannot verify individual fragrance notes from source URLs alone. A future research step must extract claims and attach exact supporting URLs before claim-level review is possible.</p>}</div>}
  <h4>Execution summary</h4><ul>{report.steps.map((s,i)=><li key={i}><strong>{s.title}</strong> — {s.status}{typeof s.output?.message==="string"?` · ${s.output.message}`:""}</li>)}</ul><p><small>Only recorded execution results are shown. External actions require their configured tools and approvals.</small></p></section>;
 }
