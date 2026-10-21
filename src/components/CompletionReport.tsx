@@ -4,6 +4,19 @@ import {createClient} from "@/lib/supabase/client";
 type Step={title:string;status:string;kind?:string;output:Record<string,unknown>|null};
 type Source={title:string;url:string;snippet:string};
 type StoredReport={summary?:string;deliverable?:unknown;sources?:unknown};
+type EvidenceType="Official manufacturer candidate"|"Third-party source"|"Unclassified source";
+function evidenceType(url:string):EvidenceType{
+ // Do not infer official status from a brand word in the URL.
+ // Official domains require a separately maintained, reviewed allowlist.
+ const officialDomains=new Set<string>();
+ try{const hostname=new URL(url).hostname.toLowerCase().replace(/^www\\./,"");if(officialDomains.has(hostname))return "Official manufacturer candidate";}catch{}
+ return "Third-party source";
+}
+function evidenceStatus(sources:Source[]):string{
+ if(!sources.length)return "No source evidence saved";
+ // Multiple search hits do not establish independent confirmation of individual claims.
+ return "Sources collected — claims not independently verified";
+}
 function safeSource(item:unknown):Source|null{
  if(!item||typeof item!=="object"||Array.isArray(item))return null;
  const row=item as Record<string,unknown>;
@@ -32,6 +45,6 @@ export default function CompletionReport({runId}:{runId:string}){
  const researchCompleted=report.steps.some(s=>s.kind==="research"&&s.status==="completed");
  return <section className="completion-report"><h4>Run report · {report.status}</h4><p>{report.stored?.summary??`${completed.length} of ${report.steps.length} planned steps completed.`}</p>
  {deliverable&&<div><h4>Finished deliverable</h4><p style={{whiteSpace:"pre-wrap"}}>{deliverable}</p></div>}
- {(sources.length>0||researchCompleted)&&<div><h4>Research evidence</h4>{sources.length>0?<><p>{sources.length} recorded source link{sources.length===1?"":"s"}. Search results are unverified until reviewed.</p><ul>{sources.map(s=><li key={s.url}><a href={s.url} target="_blank" rel="noopener noreferrer">{s.title}</a>{s.snippet&&<p>{s.snippet}</p>}<small>Unverified source</small></li>)}</ul></>:<p>Research completed, but no source URLs were found in the stored report or research step output. Evidence may not have been persisted; this run cannot be source-verified from the report.</p>}</div>}
+ {(sources.length>0||researchCompleted)&&<div><h4>Research evidence</h4>{sources.length>0?<><p>{sources.length} recorded source link{sources.length===1?"":"s"}. Source links are leads, not proof that individual claims are correct.</p><p><strong>Evidence status:</strong> {evidenceStatus(sources)}</p><p>Manufacturer-confirmed, third-party-corroborated, and conflicting claims require claim-level review. No claim is automatically promoted based only on matching search results.</p><ul>{sources.map(s=><li key={s.url}><a href={s.url} target="_blank" rel="noopener noreferrer">{s.title}</a>{s.snippet&&<p>{s.snippet}</p>}<small>{evidenceType(s.url)} · Unverified claim support</small></li>)}</ul></>:<p>Research completed, but no source URLs were found in the stored report or research step output. Evidence may not have been persisted; this run cannot be source-verified from the report.</p>}</div>}
  <h4>Execution summary</h4><ul>{report.steps.map((s,i)=><li key={i}><strong>{s.title}</strong> — {s.status}{typeof s.output?.message==="string"?` · ${s.output.message}`:""}</li>)}</ul><p><small>Only recorded execution results are shown. External actions require their configured tools and approvals.</small></p></section>;
 }
