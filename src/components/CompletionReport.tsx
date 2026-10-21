@@ -67,6 +67,30 @@ export default function CompletionReport({runId}:{runId:string}){
  return <section className="completion-report"><h4>Run report · {report.status}</h4><p>{report.stored?.summary??`${completed.length} of ${report.steps.length} planned steps completed.`}</p>
  {deliverable&&<div><h4>Finished deliverable</h4><p style={{whiteSpace:"pre-wrap"}}>{deliverable}</p></div>}
  {(sources.length>0||researchCompleted)&&<div><h4>Research evidence</h4>{sources.length>0?<><p>{sources.length} recorded source link{sources.length===1?"":"s"}. Source links are leads, not proof that individual claims are correct.</p><p><strong>Evidence status:</strong> {evidenceStatus(sources)}</p><p>Manufacturer-confirmed, third-party-corroborated, and conflicting claims require claim-level review. No claim is automatically promoted based only on matching search results.</p><ul>{sources.map(s=><li key={s.url}><a href={s.url} target="_blank" rel="noopener noreferrer">{s.title}</a>{s.snippet&&<p>{s.snippet}</p>}<small>{evidenceType(s.url)} · Unverified claim support</small></li>)}</ul></>:<p>Research completed, but no source URLs were found in the stored report or research step output. Evidence may not have been persisted; this run cannot be source-verified from the report.</p>}</div>}
- {(researchCompleted||claims.length>0)&&<div><h4>Claim verification</h4>{claims.length>0?<><p>{claims.length} recorded claim{claims.length===1?"":"s"}. Statuses are provisional and require review; linked sources do not establish that a claim is true.</p><ul>{claims.map((c,i)=><li key={i}><strong>{c.claim}</strong><p><small>Recorded status: {c.status.replaceAll("_"," ")} · Not independently verified by Atlas</small></p>{c.notes&&<p>{c.notes}</p>}{c.sourceUrls.length?<ul>{c.sourceUrls.map(url=>{const source=sourceMap.get(url);return source?<li key={url}><a href={source.url} target="_blank" rel="noopener noreferrer">{source.title}</a></li>:<li key={url}><small>Claim cites a URL not found in saved research evidence; citation not displayed.</small></li>;})}</ul>:<p><small>No source links recorded for this claim.</small>}</li>)}</ul></>:<p>No structured, source-linked claims were saved for this run. Atlas cannot verify individual fragrance notes from source URLs alone. A future research step must extract claims and attach exact supporting URLs before claim-level review is possible.</p>}</div>}
+ {(researchCompleted||claims.length>0)&&(
+ <div>
+  <h4>Claim verification</h4>
+  {claims.length>0 ? (
+   <>
+    <p>{claims.length} recorded claims. All statuses are provisional until reviewed.</p>
+    <ul>{claims.map((claim,index)=>(
+     <li key={index}>
+      <strong>{claim.claim}</strong>
+      <p><small>Recorded status: {claim.status.replaceAll("_"," ")} · Not independently verified by Atlas</small></p>
+      {claim.notes&&<p>{claim.notes}</p>}
+      {claim.sourceUrls.length>0 ? (
+       <ul>{claim.sourceUrls.map((url,i)=>{
+        const source=sourceMap.get(url);
+        return <li key={i}>{source ? <a href={source.url} target="_blank" rel="noopener noreferrer">{source.title}</a> : <small>Source URL not found in saved evidence.</small>}</li>;
+       })}</ul>
+      ) : <p><small>No source links recorded for this claim.</small></p>}
+     </li>
+    ))}</ul>
+   </>
+  ) : (
+   <p>No structured, source-linked claims were saved for this run. Source URLs alone cannot verify individual fragrance notes.</p>
+  )}
+ </div>
+ )}
  <h4>Execution summary</h4><ul>{report.steps.map((s,i)=><li key={i}><strong>{s.title}</strong> — {s.status}{typeof s.output?.message==="string"?` · ${s.output.message}`:""}</li>)}</ul><p><small>Only recorded execution results are shown. External actions require their configured tools and approvals.</small></p></section>;
 }
