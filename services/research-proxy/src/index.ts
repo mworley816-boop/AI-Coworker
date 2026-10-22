@@ -62,7 +62,12 @@ export default {
     try { payload = await response.json(); } catch { return json({ error: "Invalid provider response" }, 502); }
     let {items,result,body} = readItems(payload);
     if(items.length===0){
-      const fallback=query.replace(/^(?:research|compare|find|look up)\\s+/i,"").replace(/\\b(?:compare|across multiple sources|top,? heart,? and base|top heart and base)\\b/gi,"").replace(/\\s+/g," ").trim();
+      // Reduce instructions to the perfume name and fragrance-note keywords.
+      // The previous regex used escaped backslashes, so it matched literal "\\s".
+      const fallback=query
+        .replace(/^(?:research|compare|find|look up)\s+/i,"")
+        .replace(/\b(?:compare|across multiple sources|top,? heart,? and base|top heart and base)\b/gi,"")
+        .replace(/\s+/g," ").trim();
       if(fallback && fallback!==query && fallback.length>=5){
         try {
           const retry=await search(fallback);
