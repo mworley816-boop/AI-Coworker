@@ -62,21 +62,25 @@ export default {
     try { payload = await response.json(); } catch { return json({ error: "Invalid provider response" }, 502); }
     let {items,result,body} = readItems(payload);
     if(items.length===0){
-      // Reduce instructions to the perfume name and fragrance-note keywords.
-      // The previous regex used escaped backslashes, so it matched literal "\\s".
-      const fallback=query
-        .replace(/^(?:research|compare|find|look up)\s+/i,"")
-        .replace(/\b(?:compare|across multiple sources|top,? heart,? and base|top heart and base)\b/gi,"")
-        .replace(/\s+/g," ").trim();
-      if(fallback && fallback!==query && fallback.length>=5){
-        try {
-          const retry=await search(fallback);
-          if(retry.ok){
-            const retryPayload:unknown=await retry.json();
-            const parsed=readItems(retryPayload);
-            if(parsed.items.length){items=parsed.items;result=parsed.result;body=parsed.body;}
-          }
-        } catch { /* Preserve original empty-results diagnostics. */ }
+      // Some providers return a successful empty response for long instructions.
+      // Retry with progressively shorter, topic-preserving searches (max 3 calls).
+      const concise=query
+        .replace(/^(?:please\\s+)?(?:research|compare|find|look up|search for)\\s+/i,"")
+        .replace(/\\b(?:using the official|official manufacturer website|manufacturer website|across multiple sources|top,? heart,? and base|top heart and base)\\b/gi," ")
+        .replace(/\\s+/g," ").trim();
+      const subject=concise
+        .replace(/\\b(?:fragrance notes?|perfume notes?|note breakdown|source links?|official|website|manufacturer|using|the)\\b/gi," ")
+        .replace(/\\s+/g," ").trim();
+      const tried=new Set([query.toLowerCase()]);
+      for(const term of [concise,subject]){
+        if(term.length<5||tried.has(term.toLowerCase()))continue;
+        tried.add(term.toLowerCase());
+        try{
+          const retry=await search(term);
+          if(!retry.ok)continue;
+          const parsed=readItems(await retry.json() as unknown);
+          if(parsed.items.length){items=parsed.items;result=parsed.result;body=parsed.body;break;}
+        }catch{/* Preserve safe empty-result diagnostics. */}
       }
     }
     const results = items.slice(0, limit).flatMap((item: SearchItem) => {
