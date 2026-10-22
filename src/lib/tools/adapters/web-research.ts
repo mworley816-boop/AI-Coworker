@@ -32,13 +32,13 @@ function normalize(items:SearchItem[]){
 // These are attributed search-snippet claims, not independently verified facts.
 function extractSnippetClaims(sources:{url:string;snippet:string}[]){
  const grouped=new Map<string,{claim:string;sourceUrls:string[];status:"unverified";notes:string}>();
- const label=/(?:^|[.;\\n]\\s*)(top|heart|middle|base)\\s+notes?\\s*(?:are|include|:|–|—|-)\\s*([^.;\\n]{3,180})/gi;
+  const label=/(?:^|[.;\n]\s*)(top|heart|middle|base)\s+notes?\s*(?:are|include|:|–|—|-)\s*([^.;\n]{3,180})/gi;
  for(const source of sources){
   const snippet=source.snippet;
   for(const match of snippet.matchAll(label)){
    const group=match[1].toLowerCase()==="middle"?"heart":match[1].toLowerCase();
-   const raw=match[2].replace(/\\s+(?:and|with)\\s+/gi,", ");
-   const values=raw.split(/,|\\||\\//).map(x=>x.trim()).filter(x=>/^[\\p{L}][\\p{L}\\p{M}\\s'-]{1,40}$/u.test(x)).slice(0,12);
+   const raw=match[2].replace(/\s+(?:and|with)\s+/gi,", ");
+   const values=raw.split(/[,|/]/).map(x=>x.trim()).filter(x=>/^[\p{L}][\p{L}\p{M}\s\x27-]{1,40}$/u.test(x)).slice(0,12);
    for(const value of values){
     const claim=`${value} is listed as a ${group} note`;
     const key=`${group}:${value.toLocaleLowerCase("en")}`;
