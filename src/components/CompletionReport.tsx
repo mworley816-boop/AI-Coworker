@@ -2,7 +2,7 @@
 import {useEffect,useState} from "react";
 import {createClient} from "@/lib/supabase/client";
 type Step={title:string;status:string;kind?:string;output:Record<string,unknown>|null};
-type Source={title:string;url:string;snippet:string};
+type Source={title:string;url:string;snippet:string;sourceClassification:"manufacturer_domain_candidate"|"unclassified";manufacturerVerified:false};
 type StoredReport={summary?:string;deliverable?:unknown;sources?:unknown};
 type ClaimEvidence={claim:string;sourceUrls:string[];status:"unverified"|"single_source"|"third_party_corroborated"|"manufacturer_confirmed"|"conflicting";notes?:string};
 function extractClaims(value:unknown):ClaimEvidence[]{
@@ -23,13 +23,8 @@ function extractClaims(value:unknown):ClaimEvidence[]{
   return [{claim:claim.slice(0,600),sourceUrls:sourceUrls.slice(0,15),status,notes:typeof c.notes==="string"?c.notes.slice(0,500):undefined}];
  }).slice(0,100);
 }
-type EvidenceType="Official manufacturer candidate"|"Third-party source"|"Unclassified source";
-function evidenceType(url:string):EvidenceType{
- // Do not infer official status from a brand word in the URL.
- // Official domains require a separately maintained, reviewed allowlist.
- const officialDomains=new Set<string>();
- try{const hostname=new URL(url).hostname.toLowerCase().replace(/^www\\./,"");if(officialDomains.has(hostname))return "Official manufacturer candidate";}catch{}
- return "Third-party source";
+function evidenceType(source:Source):string{
+ return source.sourceClassification==="manufacturer_domain_candidate"?"Manufacturer-domain candidate":"Unclassified source";
 }
 function evidenceStatus(sources:Source[]):string{
  if(!sources.length)return "No source evidence saved";
@@ -44,7 +39,7 @@ function safeSource(item:unknown):Source|null{
  if(!["https:","http:"].includes(url.protocol)||url.username||url.password)return null;
  const host=url.hostname.toLowerCase();
  if(!host||host==="localhost"||host.endsWith(".localhost")||host.endsWith(".local")||host.endsWith(".internal")||host==="127.0.0.1"||host==="::1"||/^(?:10|127|169\\.254|192\\.168)\\./.test(host)||/^172\\.(?:1[6-9]|2\\d|3[01])\\./.test(host))return null;
- return {url:url.toString(),title:typeof row.title==="string"?row.title.slice(0,240):host,snippet:typeof row.snippet==="string"?row.snippet.slice(0,800):""};
+ return {url:url.toString(),title:typeof row.title==="string"?row.title.slice(0,240):host,snippet:typeof row.snippet==="string"?row.snippet.slice(0,800):"",sourceClassification:row.sourceClassification==="manufacturer_domain_candidate"?"manufacturer_domain_candidate":"unclassified",manufacturerVerified:false};
 }
 function extractSources(value:unknown):Source[]{
  if(!value||typeof value!=="object"||Array.isArray(value))return [];
@@ -60,13 +55,13 @@ export default function CompletionReport({runId}:{runId:string}){
  const completed=report.steps.filter(s=>s.status==="completed");
  const deliverable=typeof report.stored?.deliverable==="string"?report.stored.deliverable:null;
  const sourceCandidates=[...extractSources(report.stored),...report.steps.filter(s=>s.kind==="research").flatMap(s=>extractSources(s.output))];
- const seen=new Set<string>();const sources=sourceCandidates.filter(s=>{if(seen.has(s.url))return false;seen.add(s.url);return true;}).slice(0,30);
+ const sourceByUrl=new Map<string,Source>();for(const source of sourceCandidates){const previous=sourceByUrl.get(source.url);if(!previous||previous.sourceClassification==="unclassified"&&source.sourceClassification==="manufacturer_domain_candidate")sourceByUrl.set(source.url,source);}const sources=[...sourceByUrl.values()].slice(0,30);
  const claims=[...extractClaims(report.stored),...report.steps.filter(s=>s.kind==="research").flatMap(s=>extractClaims(s.output))];
  const sourceMap=new Map(sources.map(source=>[source.url,source]));
  const researchCompleted=report.steps.some(s=>s.kind==="research"&&s.status==="completed");
  return <section className="completion-report"><h4>Run report · {report.status}</h4><p>{report.stored?.summary??`${completed.length} of ${report.steps.length} planned steps completed.`}</p>
  {deliverable&&<div><h4>Finished deliverable</h4><p style={{whiteSpace:"pre-wrap"}}>{deliverable}</p></div>}
- {(sources.length>0||researchCompleted)&&<div><h4>Research evidence</h4>{sources.length>0?<><p>{sources.length} recorded source link{sources.length===1?"":"s"}. Source links are leads, not proof that individual claims are correct.</p><p><strong>Evidence status:</strong> {evidenceStatus(sources)}</p><p>Manufacturer-confirmed, third-party-corroborated, and conflicting claims require claim-level review. No claim is automatically promoted based only on matching search results.</p><ul>{sources.map(s=><li key={s.url}><a href={s.url} target="_blank" rel="noopener noreferrer">{s.title}</a>{s.snippet&&<p>{s.snippet}</p>}<small>{evidenceType(s.url)} · Unverified claim support</small></li>)}</ul></>:<p>Research completed, but no source URLs were found in the stored report or research step output. Evidence may not have been persisted; this run cannot be source-verified from the report.</p>}</div>}
+ {(sources.length>0||researchCompleted)&&<div><h4>Research evidence</h4>{sources.length>0?<><p>{sources.length} recorded source link{sources.length===1?"":"s"}. Source links are leads, not proof that individual claims are correct.</p><p><strong>Evidence status:</strong> {evidenceStatus(sources)}</p><p>Manufacturer-confirmed, third-party-corroborated, and conflicting claims require claim-level review. No claim is automatically promoted based only on matching search results.</p><ul>{sources.map(s=><li key={s.url}><a href={s.url} target="_blank" rel="noopener noreferrer">{s.title}</a>{s.snippet&&<p>{s.snippet}</p>}<small>{evidenceType(s)} · Unverified claim support</small></li>)}</ul></>:<p>Research completed, but no source URLs were found in the stored report or research step output. Evidence may not have been persisted; this run cannot be source-verified from the report.</p>}</div>}
  {(researchCompleted||claims.length>0)&&(
  <div>
   <h4>Claim verification</h4>
