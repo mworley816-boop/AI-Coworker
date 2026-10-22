@@ -31,7 +31,7 @@ function normalize(items:SearchItem[]){
 // An explicitly configured, brand-scoped domain registry is required before
 // labelling a source as a manufacturer-domain candidate. This is NOT verification
 // of page authorship or of any fragrance note claim.
-function classifySourceHosts(sources:{url:string;sourceHost:string}[],goal:string,raw:unknown){
+function classifySourceHosts<T extends {url:string;sourceHost:string}>(sources:T[],goal:string,raw:unknown){
  const registry:Record<string,string[]>= {};
  if(typeof raw==="string"){
   try{
