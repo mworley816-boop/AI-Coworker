@@ -31,7 +31,7 @@ function normalize(items:SearchItem[]){
 // Extract only explicitly labelled note groups from the saved search excerpts.
 // These are attributed search-snippet claims, not independently verified facts.
 function extractSnippetClaims(sources:{url:string;snippet:string}[]){
- const grouped=new Map<string,{claim:string;sourceUrls:string[];status:"unverified";notes:string}>();
+ const grouped=new Map<string,{claim:string;sourceUrls:string[];status:"unverified"|"conflicting";notes:string}>();
   const label=/(?:^|[.;\n]\s*)(top|heart|middle|base)\s+notes?\s*(?:are|include|:|–|—|-)\s*([^.;\n]{3,180})/gi;
  for(const source of sources){
   const snippet=source.snippet;
@@ -50,6 +50,26 @@ function extractSnippetClaims(sources:{url:string;snippet:string}[]){
    if(grouped.size>=60)break;
   }
   if(grouped.size>=60)break;
+ }
+ const placements=new Map<string,Set<string>>();
+ for(const key of grouped.keys()){
+  const index=key.indexOf(":");
+  const group=key.slice(0,index);
+  const note=key.slice(index+1);
+  const groups=placements.get(note)??new Set<string>();
+  groups.add(group);
+  placements.set(note,groups);
+ }
+ for(const [key,claim] of grouped){
+  const note=key.slice(key.indexOf(":")+1);
+  const groups=placements.get(note);
+  if(!groups||groups.size<2)continue;
+  claim.status="conflicting";
+  claim.notes="Potential note placement discrepancy across labelled snippet sections: "+[...groups].join(" vs ")+". Review the cited pages; some notes legitimately appear in multiple stages.";
+  for(const [otherKey,otherClaim] of grouped){
+   if(otherKey===key||otherKey.slice(otherKey.indexOf(":")+1)!==note)continue;
+   for(const url of otherClaim.sourceUrls)if(!claim.sourceUrls.includes(url))claim.sourceUrls.push(url);
+  }
  }
  return [...grouped.values()];
 }
