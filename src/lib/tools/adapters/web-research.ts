@@ -4,8 +4,8 @@ type SearchItem={title?:string;url?:string;content?:string};
 // Search APIs work best with subject keywords, not multi-step agent instructions.
 // Preserve the original goal for reporting; only simplify the provider query.
 function toSearchQuery(goal:string):string{
- const first=goal.split(/(?:[.!?]\\s+|\\n)/,1)[0].trim();
- const cleaned=first.replace(/^(?:please\\s+)?(?:research|look up|find information about|search for)\\s+/i,"").trim();
+ const first=goal.split(/(?:[.!?]\s+|\n)/,1)[0].trim();
+ const cleaned=first.replace(/^(?:please\s+)?(?:research|look up|find information about|search for)\s+/i,"").trim();
  return (cleaned||goal).slice(0,200).trim();
 }
 
@@ -32,14 +32,12 @@ function normalize(items:SearchItem[]){
 // about the requested product. Require distinctive product words in the URL/title
 // or excerpt; do not confuse a brand mention with a product match.
 function relevantPerfumeSources<T extends {title:string;url:string;snippet:string}>(sources:T[],goal:string):T[]{
- const noteIntent=/\\b(?:fragrance|perfume|scent)\\s+notes?\\b/i.test(goal);
+ const noteIntent=/\b(?:fragrance|perfume|scent)\s+notes?\b/i.test(goal);
  if(!noteIntent)return sources;
- const subject=goal.replace(/^(?:please\\s+)?(?:research|find|look up|search for)\\s+/i,"")
-   .split(/\\b(?:fragrance|perfume|scent)\\s+notes?\\b/i)[0]
-   .replace(/\\b(?:using|from|on|at|official|manufacturer|website|the)\\b/gi," ").trim();
+ const subject=goal.replace(/^(?:please\s+)?(?:research|find|look up|search for)\s+/i,"")
+   .split(/\b(?:fragrance|perfume|scent)\s+notes?\b/i)[0]
+   .replace(/\b(?:using|from|on|at|official|manufacturer|website|the)\b/gi," ").trim();
  const tokens=subject.toLowerCase().match(/[a-z0-9]+/g)??[];
- // Require two distinctive product words when available; if only a brand or
- // generic request is given, do not apply a speculative product filter.
  const generic=new Set(["arabiyat","sugar","prestige","perfume","parfum","fragrance","by","for","and","of"]);
  const distinctive=[...new Set(tokens.filter(t=>t.length>=3&&!generic.has(t)))];
  if(distinctive.length<2)return sources;
