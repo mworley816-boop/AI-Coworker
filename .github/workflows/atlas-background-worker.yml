@@ -36,4 +36,7 @@ jobs:
             -H "x-worker-batch-size: 5" \
             "https://ai-coworker-staging.m-worley816.workers.dev/api/worker/run")
           echo "$response" | jq -e '.ok == true' >/dev/null
+          echo "$response" | jq -e '(.processed // 0) >= 0 and (.finalized // 0) >= 0' >/dev/null
           echo "$response" | jq '{ok,processed,finalized,recovered,requeued,quarantined,idle,durationMs}'
+          echo "### Atlas worker result" >> "$GITHUB_STEP_SUMMARY"
+          echo "$response" | jq -r '[("Processed: " + ((.processed // 0)|tostring)), ("Finalized: " + ((.finalized // 0)|tostring)), ("Recovered: " + ((.recovered // 0)|tostring)), ("Requeued: " + ((.requeued // 0)|tostring)), ("Quarantined: " + ((.quarantined // 0)|tostring))] | join("; ")' >> "$GITHUB_STEP_SUMMARY"
