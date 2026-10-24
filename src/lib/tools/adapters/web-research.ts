@@ -129,19 +129,30 @@ function extractSnippetClaims(sources:{url:string;snippet:string;sourceHost:stri
   const supporting=sources.filter(source=>claim.sourceUrls.includes(source.url));
   const independentHostCount=new Set(supporting.map(source=>source.sourceHost)).size;
   const manufacturerDomainCandidateCount=new Set(supporting.filter(source=>source.sourceClassification==="manufacturer_domain_candidate").map(source=>source.sourceHost)).size;
-  const fingerprints=new Map<string,Set<string>>();
+  // Compare extracted labelled note sets, not retailer marketing text.
+  // Require at least four notes and >= 85% Jaccard overlap before flagging
+  // possible shared upstream descriptions; never assert copying.
+  const groups:{hosts:Set<string>;notes:Set<string>|null}[]=[];
   for(const source of supporting){
-   const notes=sourceNotes.get(source.url);
-   const signature=notes&&notes.size>=3?[...notes].sort().join("|"):"";
-   const key=signature?"notes:"+signature:"host:"+source.sourceHost;
-   const hosts=fingerprints.get(key)??new Set<string>();hosts.add(source.sourceHost);fingerprints.set(key,hosts);
+   const notes=sourceNotes.get(source.url)??new Set<string>();
+   const match=notes.size>=4?groups.find(group=>{
+    if(!group.notes||group.notes.size<4)return false;
+    const intersection=[...notes].filter(note=>group.notes?.has(note)).length;
+    const union=new Set([...notes,...group.notes]).size;
+    return union>0&&intersection/union>=0.85;
+   }):undefined;
+   if(match){match.hosts.add(source.sourceHost);continue;}
+   const existing=groups.find(group=>group.hosts.has(source.sourceHost));
+   if(existing){continue;}
+   groups.push({hosts:new Set([source.sourceHost]),notes:notes.size>=4?notes:null});
   }
-  const effectiveEvidenceGroupCount=Math.min(independentHostCount,fingerprints.size);
-  const possibleDuplicateHostCount=[...fingerprints.values()].reduce((total,hosts)=>total+Math.max(0,hosts.size-1),0);
+  const effectiveEvidenceGroupCount=groups.length;
+  const possibleDuplicateHostCount=groups.reduce((total,group)=>total+Math.max(0,group.hosts.size-1),0);
+  const duplicateEvidenceWarning=possibleDuplicateHostCount>0?"Similar extracted note lists (at least four notes, 85% overlap) occur on multiple hosts; possible shared upstream information, not confirmed copying.":"No strong cross-host note-list similarity detected; absence of a match does not prove independence.";
   // This bounded heuristic ranks manual review only. It cannot prove a claim.
   const score=Math.min(100,25+Math.min(30,Math.max(0,effectiveEvidenceGroupCount-1)*15)+Math.min(20,manufacturerDomainCandidateCount*20)-(claim.status==="conflicting"?35:0));
   const evidenceQuality=claim.status==="conflicting"?"conflict_review":score>=60?"higher_review_priority":score>=40?"moderate_review_priority":"limited_evidence";
-  return {...claim,independentHostCount,manufacturerDomainCandidateCount,effectiveEvidenceGroupCount,possibleDuplicateHostCount,evidenceQualityScore:score,evidenceQuality,qualityScorePolicy:"Heuristic review priority only: labelled note snippet +25, each additional distinct note-description group +15 (max +30), configured manufacturer-domain candidate +20 (max +20), conflict -35. Neither scores nor hosts establish independent verification."};
+  return {...claim,independentHostCount,manufacturerDomainCandidateCount,effectiveEvidenceGroupCount,possibleDuplicateHostCount,duplicateEvidenceWarning,evidenceQualityScore:score,evidenceQuality,qualityScorePolicy:"Heuristic review priority only: labelled note snippet +25, each additional distinct note-list similarity group +15 (max +30), configured manufacturer-domain candidate +20 (max +20), conflict -35. Neither scores nor hosts establish independent verification."};
  });
 }
 // Retry only when the provider returned no usable, product-relevant sources.
