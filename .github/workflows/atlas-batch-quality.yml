@@ -1,0 +1,41 @@
+name: Atlas batch quality gate
+
+on:
+  pull_request:
+    branches:
+      - build/mvp-foundation
+  push:
+    branches:
+      - build/mvp-foundation
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: atlas-quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: |
+          if [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ]; then
+            npm ci
+          else
+            echo '::warning::No npm lockfile is committed; using npm install until a lockfile is added.'
+            npm install --no-audit --no-fund
+          fi
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Maintenance tests
+        run: npm run test:maintenance
+      - name: Production build
+        run: npm run build
