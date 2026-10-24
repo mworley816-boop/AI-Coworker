@@ -4,7 +4,7 @@ import {createClient} from "@/lib/supabase/client";
 type Step={title:string;status:string;kind?:string;output:Record<string,unknown>|null};
 type Source={title:string;url:string;snippet:string;sourceClassification:"manufacturer_domain_candidate"|"unclassified";manufacturerVerified:false};
 type StoredReport={summary?:string;deliverable?:unknown;sources?:unknown};
-type ClaimEvidence={claim:string;sourceUrls:string[];status:"unverified"|"single_source"|"third_party_corroborated"|"manufacturer_confirmed"|"conflicting";notes?:string};
+type ClaimEvidence={claim:string;sourceUrls:string[];status:"unverified"|"single_source"|"third_party_corroborated"|"manufacturer_confirmed"|"conflicting";notes?:string;independentHostCount?:number;manufacturerDomainCandidateCount?:number};
 function extractClaims(value:unknown):ClaimEvidence[]{
  if(!value||typeof value!=="object"||Array.isArray(value))return [];
  const row=value as Record<string,unknown>;
@@ -20,7 +20,7 @@ function extractClaims(value:unknown):ClaimEvidence[]{
   const sourceUrls=Array.isArray(c.sourceUrls)?c.sourceUrls.filter((x):x is string=>typeof x==="string"):Array.isArray(c.sources)?c.sources.filter((x):x is string=>typeof x==="string"):[];
   // Treat producer-supplied statuses as provisional until there is a human review workflow.
   const status=typeof c.status==="string"&&allowed.has(c.status)?c.status as ClaimEvidence["status"]:"unverified";
-  return [{claim:claim.slice(0,600),sourceUrls:sourceUrls.slice(0,15),status,notes:typeof c.notes==="string"?c.notes.slice(0,500):undefined}];
+  return [{claim:claim.slice(0,600),sourceUrls:sourceUrls.slice(0,15),status,notes:typeof c.notes==="string"?c.notes.slice(0,500):undefined,independentHostCount:typeof c.independentHostCount==="number"&&Number.isInteger(c.independentHostCount)&&c.independentHostCount>=0?c.independentHostCount:undefined,manufacturerDomainCandidateCount:typeof c.manufacturerDomainCandidateCount==="number"&&Number.isInteger(c.manufacturerDomainCandidateCount)&&c.manufacturerDomainCandidateCount>=0?c.manufacturerDomainCandidateCount:undefined}];
  }).slice(0,100);
 }
 type ResearchAttempt={query:string;resultCount:number;relevantCount:number;rejectedCount:number};
@@ -89,7 +89,7 @@ export default function CompletionReport({runId}:{runId:string}){
      <li key={index}>
       <strong>{claim.claim}</strong>
       <p><small>Recorded status: {claim.status.replaceAll("_"," ")} · Not independently verified by Atlas</small></p>
-      {claim.notes&&<p>{claim.notes}</p>}
+      {claim.independentHostCount!==undefined&&<p><small>Distinct supporting source hosts: {claim.independentHostCount} · Manufacturer-domain candidate hosts: {claim.manufacturerDomainCandidateCount??0}. Host diversity does not establish independent reporting or claim verification.</small></p>}{claim.notes&&<p>{claim.notes}</p>}
       {claim.sourceUrls.length>0 ? (
        <ul>{claim.sourceUrls.map((url,i)=>{
         const source=sourceMap.get(url);

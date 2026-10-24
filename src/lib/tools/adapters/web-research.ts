@@ -69,7 +69,7 @@ function classifySourceHosts<T extends {url:string;sourceHost:string}>(sources:T
 }
 // Extract only explicitly labelled note groups from the saved search excerpts.
 // These are attributed search-snippet claims, not independently verified facts.
-function extractSnippetClaims(sources:{url:string;snippet:string}[]){
+function extractSnippetClaims(sources:{url:string;snippet:string;sourceHost:string;sourceClassification:string}[]){
  const grouped=new Map<string,{claim:string;sourceUrls:string[];status:"unverified"|"conflicting";notes:string}>();
   const label=/(?:^|[.;\n]\s*)(top|heart|middle|base)\s+notes?\s*(?:are|include|:|–|—|-)\s*([^.;\n]{3,180})/gi;
  for(const source of sources){
@@ -89,6 +89,19 @@ function extractSnippetClaims(sources:{url:string;snippet:string}[]){
    if(grouped.size>=60)break;
   }
   if(grouped.size>=60)break;
+ }
+ // Corroboration requires distinct source hosts, not multiple pages on one site.
+ // A configured manufacturer domain is a candidate only, never confirmation.
+ for(const claim of grouped.values()){
+  const supporting=sources.filter(source=>claim.sourceUrls.includes(source.url));
+  const hosts=new Set(supporting.map(source=>source.sourceHost));
+  const manufacturerCandidates=new Set(supporting.filter(source=>source.sourceClassification==="manufacturer_domain_candidate").map(source=>source.sourceHost));
+  if(hosts.size>=2){
+   claim.notes="Matching labelled snippets from "+hosts.size+" distinct source hosts (possible shared upstream data); independently review the linked pages.";
+  }
+  if(manufacturerCandidates.size>0){
+   claim.notes+=" "+manufacturerCandidates.size+" configured manufacturer-domain candidate host(s) appear among the sources; manufacturer authorship and claims are not verified.";
+  }
  }
  const placements=new Map<string,Set<string>>();
  for(const key of grouped.keys()){
@@ -110,7 +123,7 @@ function extractSnippetClaims(sources:{url:string;snippet:string}[]){
    for(const url of otherClaim.sourceUrls)if(!claim.sourceUrls.includes(url))claim.sourceUrls.push(url);
   }
  }
- return [...grouped.values()];
+ return [...grouped.values()].map(claim=>({...claim,independentHostCount:new Set(sources.filter(source=>claim.sourceUrls.includes(source.url)).map(source=>source.sourceHost)).size,manufacturerDomainCandidateCount:new Set(sources.filter(source=>claim.sourceUrls.includes(source.url)&&source.sourceClassification==="manufacturer_domain_candidate").map(source=>source.sourceHost)).size}));
 }
 // Retry only when the provider returned no usable, product-relevant sources.
 // Keep a small bounded query set to avoid unbounded provider usage.
