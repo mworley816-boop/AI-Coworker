@@ -29,14 +29,16 @@ jobs:
         env:
           WORKER_SECRET: ${{ secrets.ATLAS_WORKER_SECRET }}
         run: |
-          response=$(curl --fail-with-body --silent --show-error --max-time 240 \
+          response=$(curl --fail-with-body --silent --show-error --retry 2 --retry-delay 3 --retry-max-time 240 --connect-timeout 15 --max-time 180 \
             -X POST \
             -H "Authorization: Bearer $WORKER_SECRET" \
             -H "Content-Type: application/json" \
             -H "x-worker-batch-size: 5" \
             "https://ai-coworker-staging.m-worley816.workers.dev/api/worker/run")
-          echo "$response" | jq -e '.ok == true' >/dev/null
+          echo "$response" | jq -e '.ok == true and (.processed | type == "number") and (.failed // 0 | type == "number")' >/dev/null
           echo "$response" | jq -e '(.processed // 0) >= 0 and (.finalized // 0) >= 0' >/dev/null
-          echo "$response" | jq '{ok,processed,finalized,recovered,requeued,quarantined,idle,durationMs}'
+          echo "$response" | jq '{ok,processed,succeeded,deferred,failed,finalized,reportsRecovered,recovered,requeued,quarantined,idle,durationMs}'
           echo "### Atlas worker result" >> "$GITHUB_STEP_SUMMARY"
+          echo "Endpoint: Atlas staging; run: $GITHUB_RUN_ID" >> "$GITHUB_STEP_SUMMARY"
           echo "$response" | jq -r '[("Processed: " + ((.processed // 0)|tostring)), ("Finalized: " + ((.finalized // 0)|tostring)), ("Recovered: " + ((.recovered // 0)|tostring)), ("Requeued: " + ((.requeued // 0)|tostring)), ("Quarantined: " + ((.quarantined // 0)|tostring))] | join("; ")' >> "$GITHUB_STEP_SUMMARY"
+          echo "$response" | jq -e '(.failed // 0) == 0' >/dev/null || { echo "::error::Atlas reported failed tasks; inspect the worker result and task logs."; exit 1; }
