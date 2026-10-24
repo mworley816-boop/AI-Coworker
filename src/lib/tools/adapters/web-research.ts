@@ -71,6 +71,7 @@ function classifySourceHosts<T extends {url:string;sourceHost:string}>(sources:T
 // These are attributed search-snippet claims, not independently verified facts.
 function extractSnippetClaims(sources:{url:string;snippet:string;sourceHost:string;sourceClassification:string}[]){
  const grouped=new Map<string,{claim:string;sourceUrls:string[];status:"unverified"|"conflicting";notes:string}>();
+ const sourceNotes=new Map<string,Set<string>>();
   const label=/(?:^|[.;\n]\s*)(top|heart|middle|base)\s+notes?\s*(?:are|include|:|–|—|-)\s*([^.;\n]{3,180})/gi;
  for(const source of sources){
   const snippet=source.snippet;
@@ -81,6 +82,7 @@ function extractSnippetClaims(sources:{url:string;snippet:string;sourceHost:stri
    for(const value of values){
     const claim=`${value} is listed as a ${group} note`;
     const key=`${group}:${value.toLocaleLowerCase("en")}`;
+    const recorded=sourceNotes.get(source.url)??new Set<string>();recorded.add(key);sourceNotes.set(source.url,recorded);
     const existing=grouped.get(key);
     if(existing){if(!existing.sourceUrls.includes(source.url))existing.sourceUrls.push(source.url);}
     else grouped.set(key,{claim,sourceUrls:[source.url],status:"unverified",notes:"Extracted from a third-party search snippet; review the linked page before relying on this claim."});
@@ -127,10 +129,19 @@ function extractSnippetClaims(sources:{url:string;snippet:string;sourceHost:stri
   const supporting=sources.filter(source=>claim.sourceUrls.includes(source.url));
   const independentHostCount=new Set(supporting.map(source=>source.sourceHost)).size;
   const manufacturerDomainCandidateCount=new Set(supporting.filter(source=>source.sourceClassification==="manufacturer_domain_candidate").map(source=>source.sourceHost)).size;
+  const fingerprints=new Map<string,Set<string>>();
+  for(const source of supporting){
+   const notes=sourceNotes.get(source.url);
+   const signature=notes&&notes.size>=3?[...notes].sort().join("|"):"";
+   const key=signature?"notes:"+signature:"host:"+source.sourceHost;
+   const hosts=fingerprints.get(key)??new Set<string>();hosts.add(source.sourceHost);fingerprints.set(key,hosts);
+  }
+  const effectiveEvidenceGroupCount=Math.min(independentHostCount,fingerprints.size);
+  const possibleDuplicateHostCount=[...fingerprints.values()].reduce((total,hosts)=>total+Math.max(0,hosts.size-1),0);
   // This bounded heuristic ranks manual review only. It cannot prove a claim.
-  const score=Math.min(100,25+Math.min(30,Math.max(0,independentHostCount-1)*15)+Math.min(20,manufacturerDomainCandidateCount*20)-(claim.status==="conflicting"?35:0));
+  const score=Math.min(100,25+Math.min(30,Math.max(0,effectiveEvidenceGroupCount-1)*15)+Math.min(20,manufacturerDomainCandidateCount*20)-(claim.status==="conflicting"?35:0));
   const evidenceQuality=claim.status==="conflicting"?"conflict_review":score>=60?"higher_review_priority":score>=40?"moderate_review_priority":"limited_evidence";
-  return {...claim,independentHostCount,manufacturerDomainCandidateCount,evidenceQualityScore:score,evidenceQuality,qualityScorePolicy:"Heuristic review priority only: labelled note snippet +25, each additional distinct host +15 (max +30), configured manufacturer-domain candidate +20 (max +20), conflict -35. Neither scores nor hosts establish independent verification."};
+  return {...claim,independentHostCount,manufacturerDomainCandidateCount,effectiveEvidenceGroupCount,possibleDuplicateHostCount,evidenceQualityScore:score,evidenceQuality,qualityScorePolicy:"Heuristic review priority only: labelled note snippet +25, each additional distinct note-description group +15 (max +30), configured manufacturer-domain candidate +20 (max +20), conflict -35. Neither scores nor hosts establish independent verification."};
  });
 }
 // Retry only when the provider returned no usable, product-relevant sources.
