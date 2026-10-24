@@ -136,7 +136,7 @@ function extractSnippetClaims(sources:{url:string;snippet:string;sourceHost:stri
    const key=signature?"notes:"+signature:"host:"+source.sourceHost;
    const hosts=fingerprints.get(key)??new Set<string>();hosts.add(source.sourceHost);fingerprints.set(key,hosts);
   }
-  const effectiveEvidenceGroupCount=fingerprints.size;
+  const effectiveEvidenceGroupCount=Math.min(independentHostCount,fingerprints.size);
   const possibleDuplicateHostCount=[...fingerprints.values()].reduce((total,hosts)=>total+Math.max(0,hosts.size-1),0);
   // This bounded heuristic ranks manual review only. It cannot prove a claim.
   const score=Math.min(100,25+Math.min(30,Math.max(0,effectiveEvidenceGroupCount-1)*15)+Math.min(20,manufacturerDomainCandidateCount*20)-(claim.status==="conflicting"?35:0));
