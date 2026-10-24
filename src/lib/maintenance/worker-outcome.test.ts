@@ -14,3 +14,14 @@ test("does not count approval waits, pauses or cancellation as completion",()=>{
 test("failed runs are failures even if a status field claims completion",()=>{
   assert.equal(classifyWorkerOutcome({ok:false,result:{status:"completed"}}),"failed");
 });
+
+test("only exact completed status is counted as success",()=>{
+  for(const status of ["completed_with_warnings","failed","queued","retrying","waiting",""]){
+    assert.equal(classifyWorkerOutcome({ok:true,result:{status}}),"deferred");
+  }
+});
+test("failed outcomes take precedence over any lifecycle state",()=>{
+  for(const status of ["completed","running","waiting_approval","cancelled"]){
+    assert.equal(classifyWorkerOutcome({ok:false,result:{status}}),"failed");
+  }
+});
