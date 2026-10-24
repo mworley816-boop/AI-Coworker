@@ -21,19 +21,22 @@ export async function processQueuedRunBatch(supabase:SupabaseLike,workerId:strin
   const failures:unknown[]=[];
   let succeeded=0;
   let deferred=0;
+  const failedRunIds:string[]=[];
+  const deferredRunIds:string[]=[];
   const limit=Math.max(1,Math.min(maxRuns,20));
   for(let index=0;index<limit;index+=1){
     const result=await processNextQueuedRun(supabase,`${workerId}:${index}`);
     if(!result.ok){
       failures.push(result);
-      if(!("runId" in result))return {ok:false as const,processed:results.length,succeeded,deferred,failed:failures.length,finalized,reportsRecovered,recovered,requeued,quarantined,results,failures,reason:"Worker could not claim the next run"};
+      if("runId" in result&&typeof result.runId==="string")failedRunIds.push(result.runId);
+      if(!("runId" in result))return {ok:false as const,processed:results.length,succeeded,deferred,failed:failures.length,finalized,reportsRecovered,recovered,requeued,quarantined,results,failures,failedRunIds,deferredRunIds,reason:"Worker could not claim the next run"};
       results.push(result);
       continue;
     }
-    if("idle" in result&&result.idle)return {ok:failures.length===0,processed:results.length,succeeded,deferred,failed:failures.length,finalized,reportsRecovered,recovered,requeued,quarantined,idle:true as const,results,failures};
+    if("idle" in result&&result.idle)return {ok:failures.length===0,processed:results.length,succeeded,deferred,failed:failures.length,finalized,reportsRecovered,recovered,requeued,quarantined,idle:true as const,results,failures,failedRunIds,deferredRunIds};
     results.push(result);
     if(classifyWorkerOutcome(result)==="completed")succeeded+=1;
-    else deferred+=1;
+    else {deferred+=1;if(typeof result.runId==="string")deferredRunIds.push(result.runId);}
   }
-  return {ok:failures.length===0,processed:results.length,succeeded,deferred,failed:failures.length,finalized,reportsRecovered,recovered,requeued,quarantined,idle:false as const,results,failures};
+  return {ok:failures.length===0,processed:results.length,succeeded,deferred,failed:failures.length,finalized,reportsRecovered,recovered,requeued,quarantined,idle:false as const,results,failures,failedRunIds,deferredRunIds};
 }
