@@ -123,7 +123,15 @@ function extractSnippetClaims(sources:{url:string;snippet:string;sourceHost:stri
    for(const url of otherClaim.sourceUrls)if(!claim.sourceUrls.includes(url))claim.sourceUrls.push(url);
   }
  }
- return [...grouped.values()].map(claim=>({...claim,independentHostCount:new Set(sources.filter(source=>claim.sourceUrls.includes(source.url)).map(source=>source.sourceHost)).size,manufacturerDomainCandidateCount:new Set(sources.filter(source=>claim.sourceUrls.includes(source.url)&&source.sourceClassification==="manufacturer_domain_candidate").map(source=>source.sourceHost)).size}));
+ return [...grouped.values()].map(claim=>{
+  const supporting=sources.filter(source=>claim.sourceUrls.includes(source.url));
+  const independentHostCount=new Set(supporting.map(source=>source.sourceHost)).size;
+  const manufacturerDomainCandidateCount=new Set(supporting.filter(source=>source.sourceClassification==="manufacturer_domain_candidate").map(source=>source.sourceHost)).size;
+  // This bounded heuristic ranks manual review only. It cannot prove a claim.
+  const score=Math.min(100,25+Math.min(30,Math.max(0,independentHostCount-1)*15)+Math.min(20,manufacturerDomainCandidateCount*20)-(claim.status==="conflicting"?35:0));
+  const evidenceQuality=claim.status==="conflicting"?"conflict_review":score>=60?"higher_review_priority":score>=40?"moderate_review_priority":"limited_evidence";
+  return {...claim,independentHostCount,manufacturerDomainCandidateCount,evidenceQualityScore:score,evidenceQuality,qualityScorePolicy:"Heuristic review priority only: labelled note snippet +25, each additional distinct host +15 (max +30), configured manufacturer-domain candidate +20 (max +20), conflict -35. Neither scores nor hosts establish independent verification."};
+ });
 }
 // Retry only when the provider returned no usable, product-relevant sources.
 // Keep a small bounded query set to avoid unbounded provider usage.
