@@ -149,10 +149,18 @@ function extractSnippetClaims(sources:{url:string;snippet:string;sourceHost:stri
   const effectiveEvidenceGroupCount=groups.length;
   const possibleDuplicateHostCount=groups.reduce((total,group)=>total+Math.max(0,group.hosts.size-1),0);
   const duplicateEvidenceWarning=possibleDuplicateHostCount>0?"Similar extracted note lists (at least four notes, 85% overlap) occur on multiple hosts; possible shared upstream information, not confirmed copying.":"No strong cross-host note-list similarity detected; absence of a match does not prove independence.";
+  // Source attribution is provisional: search snippets do not reveal original authorship.
+  // Preserve the supporting host names for transparent manual source review.
+  const supportingSourceHosts=[...new Set(supporting.map(source=>source.sourceHost))].sort();
+  const candidateManufacturerHosts=[...new Set(supporting.filter(source=>source.sourceClassification==="manufacturer_domain_candidate").map(source=>source.sourceHost))].sort();
+  const sourceAttributionStatus=candidateManufacturerHosts.length>0?"manufacturer_domain_candidate_present":"original_source_unknown";
+  const sourceAttributionWarning=candidateManufacturerHosts.length>0
+   ?"Configured manufacturer-domain candidate found; page authorship, original publication and fragrance notes remain unverified."
+   :"Original publication source unknown. Retailer and third-party descriptions may derive from shared upstream data; source order does not establish authorship.";
   // This bounded heuristic ranks manual review only. It cannot prove a claim.
   const score=Math.min(100,25+Math.min(30,Math.max(0,effectiveEvidenceGroupCount-1)*15)+Math.min(20,manufacturerDomainCandidateCount*20)-(claim.status==="conflicting"?35:0));
   const evidenceQuality=claim.status==="conflicting"?"conflict_review":score>=60?"higher_review_priority":score>=40?"moderate_review_priority":"limited_evidence";
-  return {...claim,independentHostCount,manufacturerDomainCandidateCount,effectiveEvidenceGroupCount,possibleDuplicateHostCount,duplicateEvidenceWarning,evidenceQualityScore:score,evidenceQuality,qualityScorePolicy:"Heuristic review priority only: labelled note snippet +25, each additional distinct note-list similarity group +15 (max +30), configured manufacturer-domain candidate +20 (max +20), conflict -35. Neither scores nor hosts establish independent verification."};
+  return {...claim,independentHostCount,manufacturerDomainCandidateCount,effectiveEvidenceGroupCount,possibleDuplicateHostCount,duplicateEvidenceWarning,supportingSourceHosts,candidateManufacturerHosts,sourceAttributionStatus,sourceAttributionWarning,evidenceQualityScore:score,evidenceQuality,qualityScorePolicy:"Heuristic review priority only: labelled note snippet +25, each additional distinct note-list similarity group +15 (max +30), configured manufacturer-domain candidate +20 (max +20), conflict -35. Neither scores nor hosts establish independent verification."};
  });
 }
 // Retry only when the provider returned no usable, product-relevant sources.
