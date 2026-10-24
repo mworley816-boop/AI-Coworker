@@ -25,9 +25,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: npm
-      - name: Install locked dependencies
-        run: npm ci
+      - name: Install dependencies
+        run: |
+          if [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ]; then
+            npm ci
+          else
+            echo '::warning::No npm lockfile is committed; using npm install until a lockfile is added.'
+            npm install --no-audit --no-fund
+          fi
       - name: Typecheck
         run: npm run typecheck
       - name: Maintenance tests
