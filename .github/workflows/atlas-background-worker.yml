@@ -39,4 +39,4 @@ jobs:
           echo "$response" | jq -e '(.processed // 0) >= 0 and (.finalized // 0) >= 0' >/dev/null
           echo "$response" | jq '{ok,processed,finalized,recovered,requeued,quarantined,idle,durationMs}'
           echo "### Atlas worker result" >> "$GITHUB_STEP_SUMMARY"
-          echo "$response" | jq -r '"Processed: \\(.processed // 0); finalized: \\(.finalized // 0); recovered: \\(.recovered // 0); requeued: \\(.requeued // 0); quarantined: \\(.quarantined // 0)"' >> "$GITHUB_STEP_SUMMARY"
+          echo "$response" | jq -r '[("Processed: " + ((.processed // 0)|tostring)), ("Finalized: " + ((.finalized // 0)|tostring)), ("Recovered: " + ((.recovered // 0)|tostring)), ("Requeued: " + ((.requeued // 0)|tostring)), ("Quarantined: " + ((.quarantined // 0)|tostring))] | join("; ")' >> "$GITHUB_STEP_SUMMARY"
