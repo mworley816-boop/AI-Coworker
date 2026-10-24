@@ -35,7 +35,7 @@ jobs:
             -H "Content-Type: application/json" \
             -H "x-worker-batch-size: 5" \
             "https://ai-coworker-staging.m-worley816.workers.dev/api/worker/run")
-          echo "$response" | jq -e '.ok == true and (.processed | type == "number") and (.failed // 0 | type == "number")' >/dev/null
+          echo "$response" | jq -e '.ok == true and (.processed | type == "number") and ((.failed // 0) | type == "number") and ((.failedRunIds // []) | type == "array") and ((.deferredRunIds // []) | type == "array")' >/dev/null
           echo "$response" | jq -e '(.processed // 0) >= 0 and (.finalized // 0) >= 0' >/dev/null
           echo "$response" | jq '{ok,processed,succeeded,deferred,failed,finalized,reportsRecovered,recovered,requeued,quarantined,idle,durationMs,failedRunIds,deferredRunIds}'
           echo "### Atlas worker result" >> "$GITHUB_STEP_SUMMARY"
