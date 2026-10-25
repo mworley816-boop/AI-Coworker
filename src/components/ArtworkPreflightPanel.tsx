@@ -14,6 +14,8 @@ export default function ArtworkPreflightPanel({runId}:{runId:string}){
  const [variantConfirmed,setVariantConfirmed]=useState(false);
  const [draftStatus,setDraftStatus]=useState("");
  const [proposalStatus,setProposalStatus]=useState("");
+ const [requestStatus,setRequestStatus]=useState("");
+ const [requestCount,setRequestCount]=useState<number|null>(null);
  const [proposalPrompt,setProposalPrompt]=useState("");
  useEffect(()=>{let active=true;(async()=>{try{const response=await fetch("/api/graphics/review-draft?runId="+encodeURIComponent(runId));const result=await response.json() as {ok?:boolean;draft?:Record<string,unknown>;savedAt?:string};if(!active)return;if(!response.ok||!result.ok){setDraftStatus("Could not load saved draft.");return;}const d=result.draft;if(!d)return;
  if(typeof d.brand==="string")setBrand(d.brand);
@@ -23,6 +25,8 @@ export default function ArtworkPreflightPanel({runId}:{runId:string}){
  setReferenceApproved(d.referenceApproved===true);setRightsConfirmed(d.rightsConfirmed===true);setBottleVisuallyVerified(d.bottleVisuallyVerified===true);setVariantConfirmed(d.variantConfirmed===true);
  setDraftStatus("Saved draft restored. Recheck all attestations before use.");
  }catch{if(active)setDraftStatus("Could not load saved draft.");}})();return()=>{active=false;};},[runId]);
+ async function recordRequest(){setRequestStatus("Recording request…");try{const response=await fetch("/api/graphics/requests",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({runId})});const result=await response.json() as {ok?:boolean;reason?:string;blockers?:string[]};setRequestStatus(response.ok&&result.ok?"Request recorded — awaiting image-generation provider.":(result.reason??"Request failed.")+(result.blockers?.length?" "+result.blockers.join(" "):""));if(response.ok&&result.ok)void loadRequests();}catch{setRequestStatus("Request failed.");}}
+ async function loadRequests(){try{const response=await fetch("/api/graphics/requests?runId="+encodeURIComponent(runId));const result=await response.json() as {ok?:boolean;requests?:unknown[]};if(response.ok&&result.ok)setRequestCount(result.requests?.length??0);}catch{setRequestStatus("Could not load request history.");}}
  async function prepareJob(){setProposalStatus("Preparing proposal…");setProposalPrompt("");try{const response=await fetch("/api/graphics/prepare-job",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({runId})});const result=await response.json() as {ok?:boolean;reason?:string;proposal?:{status:string;blockers:string[];prompt:string|null}};if(!response.ok||!result.ok){setProposalStatus(result.reason??"Preparation failed.");return;}const proposal=result.proposal;if(!proposal){setProposalStatus("No proposal returned.");return;}if(proposal.status==="blocked"){setProposalStatus("Blocked: "+proposal.blockers.join(" "));return;}setProposalPrompt(proposal.prompt??"");setProposalStatus("Proposal prepared from your last saved draft. No image has been generated.");}catch{setProposalStatus("Preparation failed.");}}
  async function saveDraft(){setDraftStatus("Saving draft…");try{const response=await fetch("/api/graphics/review-draft",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({runId,brief:{brand,perfumeName,referenceUrl,artworkType,referenceApproved,rightsConfirmed,bottleVisuallyVerified,variantConfirmed}})});const result=await response.json() as {ok?:boolean;reason?:string};setDraftStatus(response.ok&&result.ok?"Draft saved. This does not authorize image generation or publishing.":result.reason??"Draft save failed.");}catch{setDraftStatus("Draft save failed.");}}
  const brief:GraphicsBrief={brand,perfumeName,referenceUrl,artworkType,referenceApproved,rightsConfirmed,bottleVisuallyVerified,variant:variantConfirmed?candidate:undefined};
@@ -46,6 +50,10 @@ export default function ArtworkPreflightPanel({runId}:{runId:string}){
   <button type="button" onClick={()=>void prepareJob()}>Prepare generation proposal from saved draft</button>
   {proposalStatus&&<p role="status">{proposalStatus}</p>}
   {proposalPrompt&&<pre style={{whiteSpace:"pre-wrap",overflowWrap:"anywhere"}}>{proposalPrompt}</pre>}
+  <button type="button" onClick={()=>void recordRequest()}>Record generation request</button>
+  <button type="button" onClick={()=>void loadRequests()}>Refresh request history</button>
+  {requestStatus&&<p role="status">{requestStatus}</p>}
+  {requestCount!==null&&<p>{requestCount} recorded request(s), awaiting provider integration. No images generated.</p>}
   <small>Saved confirmations are review notes only, not authorization to generate or publish artwork.</small>
  </section>;
 }
