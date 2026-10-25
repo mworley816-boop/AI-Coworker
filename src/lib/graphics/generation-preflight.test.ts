@@ -1,0 +1,12 @@
+import {evaluateGraphicsPreflight} from "./generation-preflight";
+import type {GraphicsBrief} from "./generation-preflight";
+const candidate={status:"candidate",matchedFields:["brand","perfumeName"],missingFields:[],conflicts:[],requiresVisualVerification:true,usageRights:"unknown",safeToGenerate:false,reason:"Metadata only"} as const;
+const base:GraphicsBrief={brand:"Example",perfumeName:"Example scent",artworkType:"catalog_card",referenceUrl:"https://example.com/reference.jpg",referenceApproved:true,rightsConfirmed:true,bottleVisuallyVerified:true,variant:{...candidate,matchedFields:[...candidate.matchedFields],missingFields:[],conflicts:[]}};
+const blocked=evaluateGraphicsPreflight({...base,referenceApproved:false});
+if(blocked.ready||!blocked.blockers.some(x=>x.includes("reviewer")))throw new Error("Unapproved references must block generation");
+const rights=evaluateGraphicsPreflight({...base,rightsConfirmed:false});
+if(rights.ready)throw new Error("Unknown rights must block generation");
+const variant=evaluateGraphicsPreflight({...base,variant:{...base.variant!,status:"mismatch"}});
+if(variant.ready)throw new Error("Variant mismatches must block generation");
+const valid=evaluateGraphicsPreflight(base);
+if(!valid.ready||valid.status!=="ready_for_generation")throw new Error("Fully reviewed reference should pass preflight");
