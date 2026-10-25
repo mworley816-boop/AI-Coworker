@@ -1,4 +1,6 @@
 import {validateReferenceUrl} from "./reference-url-safety";
+import {runtimeEnv} from "@/lib/runtime-env";
+import {retrieveTrustedReference} from "./trusted-reference-retrieval";
 /**
  * Inspect a remote reference without returning or persisting its bytes.
  * This is a transport/media check, NOT product identity, authenticity or rights verification.
@@ -9,8 +11,10 @@ const allowedTypes=new Set(["image/jpeg","image/png","image/webp"]);
 const fail=(reason:string):ImageInspection=>({ok:false,reason,requiresVisualReview:true,rightsVerified:false});
 export async function inspectReferenceImage(referenceUrl:string):Promise<ImageInspection>{
  const check=validateReferenceUrl(referenceUrl);if(!check.valid||!check.normalizedUrl)return fail(check.reason);
- // No remote fetch until a DNS-pinning and redirect-safe transport is implemented.
- return fail("Remote image inspection is unavailable until DNS resolution, redirect isolation, and private-address blocking are enforced at connection time.");
+ const env=await runtimeEnv();
+ if(!env.ATLAS_TRUSTED_IMAGE_ORIGIN)return fail("Trusted image origin is not configured; arbitrary external image URLs cannot be fetched.");
+ const result=await retrieveTrustedReference(check.normalizedUrl,env.ATLAS_TRUSTED_IMAGE_ORIGIN);
+ return result.inspection;
 }
 export function inspectImageResponse(contentType:string|null,contentLength:string|null,bytes:Uint8Array):ImageInspection{
  const mime=(contentType??"").split(";")[0].trim().toLowerCase();
