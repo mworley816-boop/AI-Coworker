@@ -26,3 +26,12 @@ export function reviewResearchClaim(claim:ResearchClaimReview){
  const evidenceQuality=claim.status==="conflicting"?"conflict_review":score>=60?"higher_review_priority":score>=40?"moderate_review_priority":"limited_evidence";
  return {reviewFlags:flags,reviewActions,reviewUrgency,reviewUrgencyReason,manualReviewRequired:true,evidenceQualityScore:score,evidenceQuality};
 }
+
+/** Deterministic ordering for manual review queues. Does not change claim status. */
+export function rankResearchClaimsForReview<T extends ResearchClaimReview>(claims:readonly T[]):Array<{claim:T;review:ReturnType<typeof reviewResearchClaim>;originalIndex:number}>{
+ const urgencyRank:Record<string,number>={high:0,medium:1,routine:2};
+ return claims.map((claim,originalIndex)=>({claim,review:reviewResearchClaim(claim),originalIndex}))
+  .sort((a,b)=>urgencyRank[a.review.reviewUrgency]-urgencyRank[b.review.reviewUrgency]
+   ||a.review.evidenceQualityScore-b.review.evidenceQualityScore
+   ||a.originalIndex-b.originalIndex);
+}
