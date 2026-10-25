@@ -15,7 +15,14 @@ export function reviewResearchClaim(claim:ResearchClaimReview){
  if(flags.includes("single_supporting_host"))reviewActions.push("Locate an additional distinct source host for comparison.");
  if(flags.includes("limited_distinct_note_evidence"))reviewActions.push("Review original pages and collect independently authored evidence.");
  if(reviewActions.length===0)reviewActions.push("Manually inspect cited original pages before approving any fragrance-note claim.");
+ // Triage urgency is separate from evidence-quality score and never implies truth.
+ const reviewUrgency=claim.status==="conflicting"?"high":claim.possibleDuplicateHostCount>0||claim.independentHostCount<2?"medium":"routine";
+ const reviewUrgencyReason=claim.status==="conflicting"
+  ?"Potentially conflicting note placements require manual resolution."
+  :claim.possibleDuplicateHostCount>0?"Descriptions may share an upstream source; investigate provenance."
+  :claim.independentHostCount<2?"Only one supporting source host was identified."
+  :"No elevated triage trigger was found; manual source verification is still required.";
  const score=Math.max(0,Math.min(100,25+Math.min(30,Math.max(0,claim.effectiveEvidenceGroupCount-1)*15)+Math.min(20,claim.manufacturerDomainCandidateCount*20)-(claim.status==="conflicting"?35:0)));
  const evidenceQuality=claim.status==="conflicting"?"conflict_review":score>=60?"higher_review_priority":score>=40?"moderate_review_priority":"limited_evidence";
- return {reviewFlags:flags,reviewActions,manualReviewRequired:true,evidenceQualityScore:score,evidenceQuality};
+ return {reviewFlags:flags,reviewActions,reviewUrgency,reviewUrgencyReason,manualReviewRequired:true,evidenceQualityScore:score,evidenceQuality};
 }
