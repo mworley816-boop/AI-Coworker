@@ -16,6 +16,7 @@ export default function ArtworkPreflightPanel({runId}:{runId:string}){
  const [proposalStatus,setProposalStatus]=useState("");
  const [requestStatus,setRequestStatus]=useState("");
  const [providerStatus,setProviderStatus]=useState("");
+ const [inspectionStatus,setInspectionStatus]=useState("");
  const [requestCount,setRequestCount]=useState<number|null>(null);
  const [proposalPrompt,setProposalPrompt]=useState("");
  useEffect(()=>{let active=true;(async()=>{try{const response=await fetch("/api/graphics/review-draft?runId="+encodeURIComponent(runId));const result=await response.json() as {ok?:boolean;draft?:Record<string,unknown>;savedAt?:string};if(!active)return;if(!response.ok||!result.ok){setDraftStatus("Could not load saved draft.");return;}const d=result.draft;if(!d)return;
@@ -26,6 +27,7 @@ export default function ArtworkPreflightPanel({runId}:{runId:string}){
  setReferenceApproved(d.referenceApproved===true);setRightsConfirmed(d.rightsConfirmed===true);setBottleVisuallyVerified(d.bottleVisuallyVerified===true);setVariantConfirmed(d.variantConfirmed===true);
  setDraftStatus("Saved draft restored. Recheck all attestations before use.");
  }catch{if(active)setDraftStatus("Could not load saved draft.");}})();return()=>{active=false;};},[runId]);
+ async function inspectReference(){setInspectionStatus("Checking reference…");try{const response=await fetch("/api/graphics/inspect-reference",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({referenceUrl})});const result=await response.json() as {ok?:boolean;reason?:string;inspection?:{ok:boolean;reason:string}};setInspectionStatus(result.inspection?.reason??result.reason??"Inspection failed.");}catch{setInspectionStatus("Inspection request failed.");}}
  async function checkProvider(){setProviderStatus("Checking provider configuration…");try{const response=await fetch("/api/graphics/provider-status");const result=await response.json() as {ok?:boolean;reason?:string;readiness?:{provider:string;configured:boolean;generationEnabled:boolean;missing:string[];message:string}};if(!response.ok||!result.ok){setProviderStatus(result.reason??"Provider check failed.");return;}const r=result.readiness;if(r)setProviderStatus(r.message+(r.missing.length?" Missing: "+r.missing.join(", "):"")+" Generation enabled: "+(r.generationEnabled?"yes":"no")+".");}catch{setProviderStatus("Provider check failed.");}}
  async function recordRequest(){setRequestStatus("Recording request…");try{const response=await fetch("/api/graphics/requests",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({runId})});const result=await response.json() as {ok?:boolean;reason?:string;blockers?:string[]};setRequestStatus(response.ok&&result.ok?"Request recorded — awaiting image-generation provider.":(result.reason??"Request failed.")+(result.blockers?.length?" "+result.blockers.join(" "):""));if(response.ok&&result.ok)void loadRequests();}catch{setRequestStatus("Request failed.");}}
  async function loadRequests(){try{const response=await fetch("/api/graphics/requests?runId="+encodeURIComponent(runId));const result=await response.json() as {ok?:boolean;requests?:unknown[]};if(response.ok&&result.ok)setRequestCount(result.requests?.length??0);}catch{setRequestStatus("Could not load request history.");}}
@@ -52,6 +54,8 @@ export default function ArtworkPreflightPanel({runId}:{runId:string}){
   <button type="button" onClick={()=>void prepareJob()}>Prepare generation proposal from saved draft</button>
   {proposalStatus&&<p role="status">{proposalStatus}</p>}
   {proposalPrompt&&<pre style={{whiteSpace:"pre-wrap",overflowWrap:"anywhere"}}>{proposalPrompt}</pre>}
+  <button type="button" onClick={()=>void inspectReference()}>Inspect reference image</button>
+  {inspectionStatus&&<p role="status">{inspectionStatus}</p>}
   <button type="button" onClick={()=>void checkProvider()}>Check graphics provider</button>
   {providerStatus&&<p role="status">{providerStatus}</p>}
   <button type="button" onClick={()=>void recordRequest()}>Record generation request</button>
