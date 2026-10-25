@@ -1,4 +1,5 @@
 "use client";
+import {useState} from "react";
 type ReviewItem={claim:string;sourceUrls:string[];reviewUrgency:string;reviewUrgencyReason:string;reviewActions:string[];manualReviewRequired:boolean};
 function record(value:unknown):Record<string,unknown>|null{return value!==null&&typeof value==="object"&&!Array.isArray(value)?value as Record<string,unknown>:null;}
 function reviewQueue(output:Record<string,unknown>|null):ReviewItem[]{
@@ -15,12 +16,18 @@ function reviewQueue(output:Record<string,unknown>|null):ReviewItem[]{
  return [];
 }
 export default function ResearchReviewPanel({steps}:{steps:{id:string;kind:string;output:Record<string,unknown>|null}[]}){
+ const [filter,setFilter]=useState<"all"|"high"|"medium"|"routine">("all");
  const items=steps.flatMap(step=>reviewQueue(step.output).map(item=>({...item,stepId:step.id})));
+ const visible=items.filter(item=>filter==="all"||item.reviewUrgency===filter);
+ const counts={high:items.filter(item=>item.reviewUrgency==="high").length,medium:items.filter(item=>item.reviewUrgency==="medium").length,routine:items.filter(item=>item.reviewUrgency==="routine").length};
  if(!items.length)return null;
  return <section aria-label="Research review queue" className="approval-panel">
   <h4>Research review queue</h4>
   <p>Claims are search-snippet leads, not verified fragrance facts. Review the original pages before approving or publishing.</p>
-  <ol>{items.map((item,index)=><li key={item.stepId+":"+index} style={{marginBottom:"1rem"}}>
+  <p role="status">{items.length} claims need verification · {counts.high} high · {counts.medium} medium · {counts.routine} routine</p>
+  <div role="group" aria-label="Filter claims by review urgency" className="approval-actions">{(["all","high","medium","routine"] as const).map(level=><button key={level} type="button" className={filter===level?"":"secondary"} aria-pressed={filter===level} onClick={()=>setFilter(level)}>{level==="all"?"All":level[0].toUpperCase()+level.slice(1)} ({level==="all"?items.length:counts[level]})</button>)}</div>
+  {visible.length===0&&<p>No claims match this filter.</p>}
+  <ol>{visible.map((item,index)=><li key={item.stepId+":"+index} style={{marginBottom:"1rem"}}>
    <strong>{item.claim}</strong> <small>Review urgency: {item.reviewUrgency}</small>
    <p>{item.reviewUrgencyReason}</p>
    <ul>{item.reviewActions.filter(action=>typeof action==="string").map((action,i)=><li key={i}>{action}</li>)}</ul>
