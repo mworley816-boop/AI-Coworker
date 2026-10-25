@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {reviewResearchClaim} from "../tools/research-claim-review.ts";
+import {reviewResearchClaim,rankResearchClaimsForReview} from "../tools/research-claim-review.ts";
 
 test("unverified single-host claim requires manual review",()=>{
  const r=reviewResearchClaim({status:"unverified",independentHostCount:1,manufacturerDomainCandidateCount:0,effectiveEvidenceGroupCount:1,possibleDuplicateHostCount:0});
@@ -62,4 +62,22 @@ test("routine urgency never removes manual approval requirement",()=>{
  const r=reviewResearchClaim({status:"unverified",independentHostCount:3,manufacturerDomainCandidateCount:1,effectiveEvidenceGroupCount:3,possibleDuplicateHostCount:0});
  assert.equal(r.reviewUrgency,"routine");
  assert.equal(r.manualReviewRequired,true);
+});
+
+test("review queue ranks conflicts ahead of weak sources and routine claims",()=>{
+ const base={manufacturerDomainCandidateCount:0,effectiveEvidenceGroupCount:2,possibleDuplicateHostCount:0};
+ const items=[
+  {id:"routine",status:"unverified",independentHostCount:3,...base},
+  {id:"high",status:"conflicting",independentHostCount:3,...base},
+  {id:"medium",status:"unverified",independentHostCount:1,...base}
+ ];
+ const sorted=rankResearchClaimsForReview(items);
+ assert.deepEqual(sorted.map(x=>x.claim.id),["high","medium","routine"]);
+ assert.ok(sorted.every(x=>x.review.manualReviewRequired));
+ assert.deepEqual(items.map(x=>x.id),["routine","high","medium"]);
+});
+test("review queue is stable when urgency and quality scores tie",()=>{
+ const item={status:"unverified",independentHostCount:3,manufacturerDomainCandidateCount:1,effectiveEvidenceGroupCount:3,possibleDuplicateHostCount:0};
+ const sorted=rankResearchClaimsForReview([{...item,id:"first"},{...item,id:"second"}]);
+ assert.deepEqual(sorted.map(x=>x.claim.id),["first","second"]);
 });
