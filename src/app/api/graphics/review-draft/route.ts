@@ -1,6 +1,5 @@
 import {NextResponse} from "next/server";
 import {createServerSupabaseClient} from "@/lib/supabase/server";
-import {evaluateGraphicsPreflight,type GraphicsBrief} from "@/lib/graphics/generation-preflight";
 const idPattern=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 async function ownedRun(s:NonNullable<Awaited<ReturnType<typeof createServerSupabaseClient>>>,runId:string,userId:string){
  const found=await s.from("runs").select("id,tasks!inner(user_id)").eq("id",runId).eq("tasks.user_id",userId).maybeSingle();
