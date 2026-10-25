@@ -75,7 +75,18 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.ATLAS_CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.ATLAS_CLOUDFLARE_ACCOUNT_ID }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
         run: |
+          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ]; then
+            echo "::error::Atlas staging build requires repository variable NEXT_PUBLIC_SUPABASE_URL."
+            exit 1
+          fi
+          if [ -z "$NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY" ] && [ -z "$NEXT_PUBLIC_SUPABASE_ANON_KEY" ]; then
+            echo "::error::Atlas staging build requires NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY GitHub secret."
+            exit 1
+          fi
           npx opennextjs-cloudflare build
           npx wrangler deploy --config wrangler.jsonc
           echo "Atlas staging deployment succeeded." >> "$GITHUB_STEP_SUMMARY"
