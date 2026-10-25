@@ -44,3 +44,22 @@ test("even strong snippet evidence requires manual inspection",()=>{
  assert.equal(r.manualReviewRequired,true);
  assert.match(r.reviewActions[0],/Manually inspect/);
 });
+
+test("conflicting note placement is high urgency independent of evidence score",()=>{
+ const r=reviewResearchClaim({status:"conflicting",independentHostCount:4,manufacturerDomainCandidateCount:1,effectiveEvidenceGroupCount:4,possibleDuplicateHostCount:0});
+ assert.equal(r.reviewUrgency,"high");
+ assert.equal(r.manualReviewRequired,true);
+});
+test("single-host or possible shared descriptions receive medium urgency",()=>{
+ for(const claim of [
+  {status:"unverified",independentHostCount:1,manufacturerDomainCandidateCount:0,effectiveEvidenceGroupCount:1,possibleDuplicateHostCount:0},
+  {status:"unverified",independentHostCount:3,manufacturerDomainCandidateCount:0,effectiveEvidenceGroupCount:2,possibleDuplicateHostCount:1}
+ ]){
+  assert.equal(reviewResearchClaim(claim).reviewUrgency,"medium");
+ }
+});
+test("routine urgency never removes manual approval requirement",()=>{
+ const r=reviewResearchClaim({status:"unverified",independentHostCount:3,manufacturerDomainCandidateCount:1,effectiveEvidenceGroupCount:3,possibleDuplicateHostCount:0});
+ assert.equal(r.reviewUrgency,"routine");
+ assert.equal(r.manualReviewRequired,true);
+});
