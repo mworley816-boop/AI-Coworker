@@ -30,3 +30,17 @@ test("review score stays bounded at 100",()=>{
  assert.ok(r.evidenceQualityScore<=100);
  assert.equal(r.manualReviewRequired,true);
 });
+
+test("research review actions guide source investigation without approving claims",()=>{
+ const r=reviewResearchClaim({status:"unverified",independentHostCount:1,manufacturerDomainCandidateCount:0,effectiveEvidenceGroupCount:1,possibleDuplicateHostCount:1});
+ assert.equal(r.manualReviewRequired,true);
+ assert.ok(r.reviewActions.some(action=>action.includes("official brand")));
+ assert.ok(r.reviewActions.some(action=>action.includes("original publication")));
+ assert.ok(r.reviewActions.some(action=>action.includes("additional distinct")));
+});
+test("even strong snippet evidence requires manual inspection",()=>{
+ const r=reviewResearchClaim({status:"unverified",independentHostCount:3,manufacturerDomainCandidateCount:1,effectiveEvidenceGroupCount:3,possibleDuplicateHostCount:0});
+ assert.deepEqual(r.reviewFlags,[]);
+ assert.equal(r.manualReviewRequired,true);
+ assert.match(r.reviewActions[0],/Manually inspect/);
+});
