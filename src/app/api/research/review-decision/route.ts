@@ -17,6 +17,15 @@ export async function POST(request:Request){
  const step=await s.from("run_steps").select("id,output").eq("run_id",runId).eq("id",stepId).maybeSingle();
  if(step.error)return NextResponse.json({ok:false,reason:"Could not verify research step"},{status:500});
  if(!step.data)return NextResponse.json({ok:false,reason:"Step not found"},{status:404});
+ const output=step.data.output as unknown;
+ function hasClaim(value:unknown,depth=0):boolean{
+  if(depth>5||!value||typeof value!=="object")return false;
+  if(Array.isArray(value))return value.some(item=>hasClaim(item,depth+1));
+  const data=value as Record<string,unknown>;
+  if(Array.isArray(data.reviewQueue)&&data.reviewQueue.some(item=>item&&typeof item==="object"&&(item as Record<string,unknown>).claim===claim))return true;
+  return ["data","result","toolResult"].some(key=>hasClaim(data[key],depth+1));
+ }
+ if(!hasClaim(output))return NextResponse.json({ok:false,reason:"Claim not found in research evidence"},{status:409});
  // Review decisions are audit events only. They never authorize catalog writes.
  const audit=await s.from("activity_logs").insert({run_id:runId,event_type:"research.claim_review_decision",message:"User recorded a research claim review decision.",metadata:{userId:user.id,stepId,claim:claim.trim(),decision}});
  if(audit.error)return NextResponse.json({ok:false,reason:"Could not save review decision"},{status:500});
