@@ -24,7 +24,7 @@ export default function ResearchReviewPanel({steps}:{steps:{id:string;kind:strin
    <strong>{item.claim}</strong> <small>Review urgency: {item.reviewUrgency}</small>
    <p>{item.reviewUrgencyReason}</p>
    <ul>{item.reviewActions.filter(action=>typeof action==="string").map((action,i)=><li key={i}>{action}</li>)}</ul>
-   <p>Sources: {item.sourceUrls.filter(url=>typeof url==="string"&&/^https?:\/\//.test(url)).map((url,i)=><span key={i}><a href={url} target="_blank" rel="noopener noreferrer">{new URL(url).hostname}</a>{" "}</span>)}</p>
+   <p>Sources: {item.sourceUrls.filter(url=>typeof url==="string"&&/^https?:\/\//.test(url)).map((url,i)=><span key={i}><a href={url} target="_blank" rel="noopener noreferrer">{"Source "+(i+1)}</a>{" "}</span>)}</p>
    <small>Manual verification required</small>
   </li>)}</ol>
  </section>;
