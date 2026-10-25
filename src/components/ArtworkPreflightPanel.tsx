@@ -1,10 +1,10 @@
 "use client";
-import {useState} from "react";
+import {useEffect,useState} from "react";
 import {evaluateGraphicsPreflight} from "@/lib/graphics/generation-preflight";
 import type {GraphicsBrief} from "@/lib/graphics/generation-preflight";
 import type {BottleVariantAssessment} from "@/lib/graphics/bottle-variant-matching";
 const candidate: BottleVariantAssessment={status:"candidate",matchedFields:["brand","perfumeName"],missingFields:[],conflicts:[],requiresVisualVerification:true,usageRights:"unknown",safeToGenerate:false,reason:"User must confirm reference and variant."};
-export default function ArtworkPreflightPanel(){
+export default function ArtworkPreflightPanel({runId}:{runId:string}){
  const [brand,setBrand]=useState("");const [perfumeName,setPerfumeName]=useState("");
  const [referenceUrl,setReferenceUrl]=useState("");
  const [artworkType,setArtworkType]=useState<GraphicsBrief["artworkType"]>("catalog_card");
@@ -12,6 +12,16 @@ export default function ArtworkPreflightPanel(){
  const [rightsConfirmed,setRightsConfirmed]=useState(false);
  const [bottleVisuallyVerified,setBottleVisuallyVerified]=useState(false);
  const [variantConfirmed,setVariantConfirmed]=useState(false);
+ const [draftStatus,setDraftStatus]=useState("");
+ useEffect(()=>{let active=true;(async()=>{try{const response=await fetch("/api/graphics/review-draft?runId="+encodeURIComponent(runId));const result=await response.json() as {ok?:boolean;draft?:Record<string,unknown>;savedAt?:string};if(!active)return;if(!response.ok||!result.ok){setDraftStatus("Could not load saved draft.");return;}const d=result.draft;if(!d)return;
+ if(typeof d.brand==="string")setBrand(d.brand);
+ if(typeof d.perfumeName==="string")setPerfumeName(d.perfumeName);
+ if(typeof d.referenceUrl==="string")setReferenceUrl(d.referenceUrl);
+ if(["catalog_card","social_square","banner"].includes(String(d.artworkType)))setArtworkType(d.artworkType as GraphicsBrief["artworkType"]);
+ setReferenceApproved(d.referenceApproved===true);setRightsConfirmed(d.rightsConfirmed===true);setBottleVisuallyVerified(d.bottleVisuallyVerified===true);setVariantConfirmed(d.variantConfirmed===true);
+ setDraftStatus("Saved draft restored. Recheck all attestations before use.");
+ }catch{if(active)setDraftStatus("Could not load saved draft.");}})();return()=>{active=false;};},[runId]);
+ async function saveDraft(){setDraftStatus("Saving draft…");try{const response=await fetch("/api/graphics/review-draft",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({runId,brief:{brand,perfumeName,referenceUrl,artworkType,referenceApproved,rightsConfirmed,bottleVisuallyVerified,variantConfirmed}})});const result=await response.json() as {ok?:boolean;reason?:string};setDraftStatus(response.ok&&result.ok?"Draft saved. This does not authorize image generation or publishing.":result.reason??"Draft save failed.");}catch{setDraftStatus("Draft save failed.");}}
  const brief:GraphicsBrief={brand,perfumeName,referenceUrl,artworkType,referenceApproved,rightsConfirmed,bottleVisuallyVerified,variant:variantConfirmed?candidate:undefined};
  const preflight=evaluateGraphicsPreflight(brief);
  return <section className="approval-panel" aria-label="Graphics preparation checklist">
@@ -28,6 +38,8 @@ export default function ArtworkPreflightPanel(){
   <p role="status"><strong>{preflight.ready?"Preflight complete — generation remains a separate, unavailable step":"Preflight blocked"}</strong></p>
   {preflight.blockers.length>0&&<ul>{preflight.blockers.map(item=><li key={item}>{item}</li>)}</ul>}
   {preflight.ready&&<div><h5>Generation instructions</h5><ul>{preflight.instructions.map(item=><li key={item}>{item}</li>)}</ul></div>}
-  <small>Confirmations are local to this page; they are not saved as approvals.</small>
+  <button type="button" onClick={()=>void saveDraft()}>Save review draft</button>
+  {draftStatus&&<p role="status">{draftStatus}</p>}
+  <small>Saved confirmations are review notes only, not authorization to generate or publish artwork.</small>
  </section>;
 }
