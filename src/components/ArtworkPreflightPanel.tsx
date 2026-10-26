@@ -1,5 +1,6 @@
 "use client";
 import {useEffect,useState} from "react";
+import {discoverReferenceSources} from "@/lib/graphics/reference-source-discovery";
 import {evaluateGraphicsPreflight} from "@/lib/graphics/generation-preflight";
 import type {GraphicsBrief} from "@/lib/graphics/generation-preflight";
 import type {BottleVariantAssessment} from "@/lib/graphics/bottle-variant-matching";
@@ -65,11 +66,13 @@ export default function ArtworkPreflightPanel({runId}:{runId:string}){
  async function saveDraft(){setDraftStatus("Saving draft…");try{const response=await fetch("/api/graphics/review-draft",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({runId,brief:{brand,perfumeName,referenceUrl,artworkType,referenceApproved,rightsConfirmed:referenceUse==="licensed_generation"&&rightsConfirmed&&Boolean(rightsEvidence.trim()),bottleVisuallyVerified,variantConfirmed,sourcePage,referenceUse,rightsEvidence}})});const result=await response.json() as {ok?:boolean;reason?:string};setDraftStatus(response.ok&&result.ok?"Draft saved. This does not authorize image generation or publishing.":result.reason??"Draft save failed.");}catch{setDraftStatus("Draft save failed.");}}
  const brief:GraphicsBrief={brand,perfumeName,referenceUrl,artworkType,referenceApproved,rightsConfirmed:referenceUse==="licensed_generation"&&rightsConfirmed&&Boolean(rightsEvidence.trim()),bottleVisuallyVerified,variant:variantConfirmed?candidate:undefined};
  const preflight=evaluateGraphicsPreflight(brief);
+ const sourceLeads=discoverReferenceSources(brand,perfumeName);
  return <section className="approval-panel" aria-label="Graphics preparation checklist">
   <h4>Graphics preparation</h4>
   <p>Prepare a bottle-faithful artwork brief. This checklist does not create, approve, upload or publish an image. Verify the actual reference before checking confirmations.</p>
   <div><label>Brand <input value={brand} onChange={e=>setBrand(e.target.value)} placeholder="Perfume brand"/></label></div>
   <div><label>Perfume name <input value={perfumeName} onChange={e=>setPerfumeName(e.target.value)} placeholder="Exact fragrance and edition"/></label></div>
+  <details><summary>Research product photo sources (no image download)</summary><p>Curated research leads only. These pages are not verified manufacturer sources, image licenses, or proof of bottle identity. Never assume their images are cleared for reuse.</p>{sourceLeads.leads.length? <ul>{sourceLeads.leads.map(lead=><li key={lead.url}><a href={lead.url} target="_blank" rel="noopener noreferrer">{lead.name}</a> — rights and bottle identity unverified</li>)}</ul>:<p>No curated leads for this product yet. Manual source research required.</p>}</details>
   <div><label>Artwork type <select value={artworkType} onChange={e=>setArtworkType(e.target.value as GraphicsBrief["artworkType"])}><option value="catalog_card">Catalog card</option><option value="social_square">Social square</option><option value="banner">Banner</option></select></label></div>
   <div><label>Upload private bottle reference (PNG, JPG, or WebP, up to 8 MiB) <input type="file" accept="image/png,image/jpeg,image/webp" onChange={e=>setUploadFile(e.target.files?.[0]??null)}/></label><button type="button" disabled={!uploadFile} onClick={()=>void uploadReference()}>Upload reference to private R2</button>{uploadStatus&&<p role="status">{uploadStatus}</p>}</div>
   <div><label>Reference image URL <input type="url" value={referenceUrl} onChange={e=>setReferenceUrl(e.target.value)} placeholder="https://..." /></label></div>
