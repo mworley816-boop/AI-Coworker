@@ -12,14 +12,14 @@ export default async function Home({searchParams}:{searchParams:Promise<{auth?:s
    <nav aria-label="Atlas navigation" className="atlas-nav">
     <a href="/" aria-current="page">Overview</a>
     <a href="/tasks">Tasks</a>
+    <a href="/scentmarked-content/research">Research</a>
+    <a href="/scentmarked-content/graphics">Graphics</a>
     <a href="/approvals">Needs review</a>
     <a href="/coworkers">Coworkers</a>
     <a href="/scentmarked-content">Scentmarked</a>
     <details><summary>More tools</summary>
      <a href="/activity">Activity</a>
      <a href="/connections">Connections</a>
-     <a href="/scentmarked-content/graphics">Graphics queue</a>
-     <a href="/scentmarked-content/research">Perfume research</a>
      <a href="/memory">Memory</a>
      <a href="/tools">Permissions</a>
     </details>
@@ -29,7 +29,7 @@ export default async function Home({searchParams}:{searchParams:Promise<{auth?:s
    <AuthPanel status={q.auth} message={q.message}/>
    <header className="calm-header"><div><p className="eyebrow">YOUR WORKSPACE</p><h1>Welcome to Atlas</h1><p>See what needs attention, then choose your next step.</p></div></header>
    <AttentionHub/>
-   <section className="calm-section" aria-labelledby="overview-title"><h2 id="overview-title">Workspace overview</h2><WorkspaceSummary/></section>
+   <details className="calm-expand"><summary>Workspace details and maintenance</summary><div className="atlas-dashboard-details"><WorkspaceSummary/></div></details>
    <details className="calm-expand"><summary>Start a new goal</summary><GoalComposer/></details>
   </section>
  </main>;
