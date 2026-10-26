@@ -68,12 +68,15 @@ export default function ArtworkPreflightPanel({runId}:{runId:string}){
  const preflight=evaluateGraphicsPreflight(brief);
  const sourceLeads=discoverReferenceSources(brand,perfumeName);
  return <section className="approval-panel" aria-label="Graphics preparation checklist">
-  <h4>Graphics preparation</h4>
-  <p>Prepare a bottle-faithful artwork brief. This checklist does not create, approve, upload or publish an image. Verify the actual reference before checking confirmations.</p>
+  <h4>Graphics workspace</h4>
+  <p>Work through the sections in order. Research and draft saving do not authorize generation or publication.</p>
+  <details open><summary><strong>1. Perfume details and research</strong></summary>
   <div><label>Brand <input value={brand} onChange={e=>setBrand(e.target.value)} placeholder="Perfume brand"/></label></div>
   <div><label>Perfume name <input value={perfumeName} onChange={e=>setPerfumeName(e.target.value)} placeholder="Exact fragrance and edition"/></label></div>
   <details><summary>Research product photo sources (no image download)</summary><p>Curated research leads only. These pages are not verified manufacturer sources, image licenses, or proof of bottle identity. Never assume their images are cleared for reuse.</p>{sourceLeads.leads.length? <ul>{sourceLeads.leads.map(lead=><li key={lead.url}><a href={lead.url} target="_blank" rel="noopener noreferrer">{lead.name}</a> — rights and bottle identity unverified</li>)}</ul>:<p>No curated leads for this product yet. Manual source research required.</p>}</details>
   <div><label>Artwork type <select value={artworkType} onChange={e=>setArtworkType(e.target.value as GraphicsBrief["artworkType"])}><option value="catalog_card">Catalog card</option><option value="social_square">Social square</option><option value="banner">Banner</option></select></label></div>
+  </details>
+  <details><summary><strong>2. Reference image and usage rights</strong></summary>
   <div><label>Upload private bottle reference (PNG, JPG, or WebP, up to 8 MiB) <input type="file" accept="image/png,image/jpeg,image/webp" onChange={e=>setUploadFile(e.target.files?.[0]??null)}/></label><button type="button" disabled={!uploadFile} onClick={()=>void uploadReference()}>Upload reference to private R2</button>{uploadStatus&&<p role="status">{uploadStatus}</p>}</div>
   <div><label>Reference image URL <input type="url" value={referenceUrl} onChange={e=>setReferenceUrl(e.target.value)} placeholder="https://..." /></label></div>
   <fieldset><legend>Reference use and rights (choose one)</legend>
@@ -87,11 +90,15 @@ export default function ArtworkPreflightPanel({runId}:{runId:string}){
   <div><label><input type="checkbox" checked={rightsConfirmed} disabled={referenceUse!=="licensed_generation"||!rightsEvidence.trim()} onChange={e=>setRightsConfirmed(e.target.checked)}/> I confirmed permission or licensing for intended image use</label></div>
   <div><label><input type="checkbox" checked={bottleVisuallyVerified} onChange={e=>setBottleVisuallyVerified(e.target.checked)}/> I verified the bottle shape, cap, label and logo visually</label></div>
   <div><label><input type="checkbox" checked={variantConfirmed} onChange={e=>setVariantConfirmed(e.target.checked)}/> I verified the exact product variant</label></div>
+  </details>
+  <details open><summary><strong>3. Review and save draft</strong></summary>
   <p role="status"><strong>{preflight.ready?"Preflight complete — generation requires saved draft and enabled provider":"Preflight blocked"}</strong></p>
   {preflight.blockers.length>0&&<ul>{preflight.blockers.map(item=><li key={item}>{item}</li>)}</ul>}
   {preflight.ready&&<div><h5>Generation instructions</h5><ul>{preflight.instructions.map(item=><li key={item}>{item}</li>)}</ul></div>}
   <button type="button" onClick={()=>void saveDraft()}>Save review draft</button>
   {draftStatus&&<p role="status">{draftStatus}</p>}
+  </details>
+  <details><summary><strong>4. Advanced tools and provider diagnostics</strong></summary>
   <button type="button" onClick={()=>void prepareJob()}>Prepare generation proposal from saved draft</button>
   {proposalStatus&&<p role="status">{proposalStatus}</p>}
   {proposalPrompt&&<pre style={{whiteSpace:"pre-wrap",overflowWrap:"anywhere"}}>{proposalPrompt}</pre>}
@@ -107,6 +114,7 @@ export default function ArtworkPreflightPanel({runId}:{runId:string}){
   <button type="button" onClick={()=>void loadRequests()}>Refresh request history</button>
   {requestStatus&&<p role="status">{requestStatus}</p>}
   {requestCount!==null&&<p>{requestCount} recorded request(s), awaiting provider integration. No images generated.</p>}
+  </details>
   <small>Saved confirmations are review notes only, not authorization to generate or publish artwork.</small>
  </section>;
 }
