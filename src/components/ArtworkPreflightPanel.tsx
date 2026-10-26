@@ -16,6 +16,7 @@ export default function ArtworkPreflightPanel({runId}:{runId:string}){
  const [proposalStatus,setProposalStatus]=useState("");
  const [requestStatus,setRequestStatus]=useState("");
  const [providerStatus,setProviderStatus]=useState("");
+ const [providerChecks,setProviderChecks]=useState<{name:string;ready:boolean;detail:string}[]>([]);
  const [inspectionStatus,setInspectionStatus]=useState("");
  const [generationStatus,setGenerationStatus]=useState("");
  const [previewUrl,setPreviewUrl]=useState("");
@@ -31,7 +32,7 @@ export default function ArtworkPreflightPanel({runId}:{runId:string}){
  setDraftStatus("Saved draft restored. Recheck all attestations before use.");
  }catch{if(active)setDraftStatus("Could not load saved draft.");}})();return()=>{active=false;};},[runId]);
  async function inspectReference(){setInspectionStatus("Checking reference…");try{const response=await fetch("/api/graphics/inspect-reference",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({referenceUrl})});const result=await response.json() as {ok?:boolean;reason?:string;inspection?:{ok:boolean;reason:string}};setInspectionStatus(result.inspection?.reason??result.reason??"Inspection failed.");}catch{setInspectionStatus("Inspection request failed.");}}
- async function checkProvider(){setProviderStatus("Checking provider configuration…");try{const response=await fetch("/api/graphics/provider-status");const result=await response.json() as {ok?:boolean;reason?:string;readiness?:{provider:string;configured:boolean;generationEnabled:boolean;missing:string[];message:string}};if(!response.ok||!result.ok){setProviderStatus(result.reason??"Provider check failed.");return;}const r=result.readiness;if(r)setProviderStatus(r.message+(r.missing.length?" Missing: "+r.missing.join(", "):"")+" Generation enabled: "+(r.generationEnabled?"yes":"no")+".");}catch{setProviderStatus("Provider check failed.");}}
+ async function checkProvider(){setProviderStatus("Checking provider configuration…");try{const response=await fetch("/api/graphics/provider-status");const result=await response.json() as {ok?:boolean;reason?:string;readiness?:{provider:string;configured:boolean;generationEnabled:boolean;missing:string[];message:string;checks?:{name:string;ready:boolean;detail:string}[]}};if(!response.ok||!result.ok){setProviderStatus(result.reason??"Provider check failed.");return;}const r=result.readiness;if(r){setProviderStatus(r.message);setProviderChecks(r.checks??[]);}}catch{setProviderStatus("Provider check failed.");}}
  async function generatePreview(){
   if(!window.confirm("Generate a new private graphics preview using your saved review draft? This sends the reference image to OpenAI and may incur API charges. It does not approve or publish artwork."))return;
   setGenerating(true);setGenerationStatus("Generating preview…");setPreviewUrl("");
@@ -66,6 +67,7 @@ export default function ArtworkPreflightPanel({runId}:{runId:string}){
   {inspectionStatus&&<p role="status">{inspectionStatus}</p>}
   <button type="button" onClick={()=>void checkProvider()}>Check graphics provider</button>
   {providerStatus&&<p role="status">{providerStatus}</p>}
+  {providerChecks.length>0&&<ul>{providerChecks.map(check=><li key={check.name}>{check.ready?"Ready":"Needs attention"} — {check.name}: {check.detail}</li>)}</ul>}
   <button type="button" disabled={generating} onClick={()=>void generatePreview()}>{generating?"Generating…":"Generate private preview (OpenAI)"}</button>
   {generationStatus&&<p role="status">{generationStatus}</p>}
   {previewUrl&&<div><p>Unapproved generated preview — inspect bottle accuracy before use. Not saved or published.</p><img src={previewUrl} alt="Unapproved generated perfume graphics preview" style={{maxWidth:"100%",height:"auto"}}/></div>}
