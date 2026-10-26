@@ -20,7 +20,7 @@ export async function generateGraphicsPreview(draft:GraphicsReviewDraft):Promise
  form.set("model","gpt-image-1");
  form.set("prompt",input.prompt+"\nUse the supplied bottle photograph as the primary identity reference. Preserve label text and bottle geometry as closely as possible. Output is an unapproved preview only.");
  form.set("size","1024x1024");
- form.set("image",new Blob([decodeBase64(input.imageBase64)],{type:input.mimeType}),"reference."+ext);
+ form.set("image",new Blob([Uint8Array.from(decodeBase64(input.imageBase64))],{type:input.mimeType}),"reference."+ext);
  const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),90000);
  try{
   const response=await fetch("https://api.openai.com/v1/images/edits",{method:"POST",headers:{Authorization:"Bearer "+env.OPENAI_API_KEY},body:form,signal:controller.signal,cache:"no-store"});
