@@ -7,6 +7,9 @@ const candidate: BottleVariantAssessment={status:"candidate",matchedFields:["bra
 export default function ArtworkPreflightPanel({runId}:{runId:string}){
  const [brand,setBrand]=useState("");const [perfumeName,setPerfumeName]=useState("");
  const [referenceUrl,setReferenceUrl]=useState("");
+ const [sourcePage,setSourcePage]=useState("");
+ const [referenceUse,setReferenceUse]=useState<"research_only"|"licensed_generation">("research_only");
+ const [rightsEvidence,setRightsEvidence]=useState("");
  const [uploadFile,setUploadFile]=useState<File|null>(null);
  const [uploadStatus,setUploadStatus]=useState("");
  const [artworkType,setArtworkType]=useState<GraphicsBrief["artworkType"]>("catalog_card");
@@ -29,6 +32,9 @@ export default function ArtworkPreflightPanel({runId}:{runId:string}){
  if(typeof d.brand==="string")setBrand(d.brand);
  if(typeof d.perfumeName==="string")setPerfumeName(d.perfumeName);
  if(typeof d.referenceUrl==="string")setReferenceUrl(d.referenceUrl);
+ if(typeof d.sourcePage==="string")setSourcePage(d.sourcePage);
+ if(d.referenceUse==="licensed_generation")setReferenceUse("licensed_generation");
+ if(typeof d.rightsEvidence==="string")setRightsEvidence(d.rightsEvidence);
  if(["catalog_card","social_square","banner"].includes(String(d.artworkType)))setArtworkType(d.artworkType as GraphicsBrief["artworkType"]);
  setReferenceApproved(d.referenceApproved===true);setRightsConfirmed(d.rightsConfirmed===true);setBottleVisuallyVerified(d.bottleVisuallyVerified===true);setVariantConfirmed(d.variantConfirmed===true);
  setDraftStatus("Saved draft restored. Recheck all attestations before use.");
@@ -56,8 +62,8 @@ export default function ArtworkPreflightPanel({runId}:{runId:string}){
  async function recordRequest(){setRequestStatus("Recording request…");try{const response=await fetch("/api/graphics/requests",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({runId})});const result=await response.json() as {ok?:boolean;reason?:string;blockers?:string[]};setRequestStatus(response.ok&&result.ok?"Request recorded — awaiting image-generation provider.":(result.reason??"Request failed.")+(result.blockers?.length?" "+result.blockers.join(" "):""));if(response.ok&&result.ok)void loadRequests();}catch{setRequestStatus("Request failed.");}}
  async function loadRequests(){try{const response=await fetch("/api/graphics/requests?runId="+encodeURIComponent(runId));const result=await response.json() as {ok?:boolean;requests?:unknown[]};if(response.ok&&result.ok)setRequestCount(result.requests?.length??0);}catch{setRequestStatus("Could not load request history.");}}
  async function prepareJob(){setProposalStatus("Preparing proposal…");setProposalPrompt("");try{const response=await fetch("/api/graphics/prepare-job",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({runId})});const result=await response.json() as {ok?:boolean;reason?:string;proposal?:{status:string;blockers:string[];prompt:string|null}};if(!response.ok||!result.ok){setProposalStatus(result.reason??"Preparation failed.");return;}const proposal=result.proposal;if(!proposal){setProposalStatus("No proposal returned.");return;}if(proposal.status==="blocked"){setProposalStatus("Blocked: "+proposal.blockers.join(" "));return;}setProposalPrompt(proposal.prompt??"");setProposalStatus("Proposal prepared from your last saved draft. No image has been generated.");}catch{setProposalStatus("Preparation failed.");}}
- async function saveDraft(){setDraftStatus("Saving draft…");try{const response=await fetch("/api/graphics/review-draft",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({runId,brief:{brand,perfumeName,referenceUrl,artworkType,referenceApproved,rightsConfirmed,bottleVisuallyVerified,variantConfirmed}})});const result=await response.json() as {ok?:boolean;reason?:string};setDraftStatus(response.ok&&result.ok?"Draft saved. This does not authorize image generation or publishing.":result.reason??"Draft save failed.");}catch{setDraftStatus("Draft save failed.");}}
- const brief:GraphicsBrief={brand,perfumeName,referenceUrl,artworkType,referenceApproved,rightsConfirmed,bottleVisuallyVerified,variant:variantConfirmed?candidate:undefined};
+ async function saveDraft(){setDraftStatus("Saving draft…");try{const response=await fetch("/api/graphics/review-draft",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({runId,brief:{brand,perfumeName,referenceUrl,artworkType,referenceApproved,rightsConfirmed:referenceUse==="licensed_generation"&&rightsConfirmed&&Boolean(rightsEvidence.trim()),bottleVisuallyVerified,variantConfirmed,sourcePage,referenceUse,rightsEvidence}})});const result=await response.json() as {ok?:boolean;reason?:string};setDraftStatus(response.ok&&result.ok?"Draft saved. This does not authorize image generation or publishing.":result.reason??"Draft save failed.");}catch{setDraftStatus("Draft save failed.");}}
+ const brief:GraphicsBrief={brand,perfumeName,referenceUrl,artworkType,referenceApproved,rightsConfirmed:referenceUse==="licensed_generation"&&rightsConfirmed&&Boolean(rightsEvidence.trim()),bottleVisuallyVerified,variant:variantConfirmed?candidate:undefined};
  const preflight=evaluateGraphicsPreflight(brief);
  return <section className="approval-panel" aria-label="Graphics preparation checklist">
   <h4>Graphics preparation</h4>
@@ -67,8 +73,15 @@ export default function ArtworkPreflightPanel({runId}:{runId:string}){
   <div><label>Artwork type <select value={artworkType} onChange={e=>setArtworkType(e.target.value as GraphicsBrief["artworkType"])}><option value="catalog_card">Catalog card</option><option value="social_square">Social square</option><option value="banner">Banner</option></select></label></div>
   <div><label>Upload private bottle reference (PNG, JPG, or WebP, up to 8 MiB) <input type="file" accept="image/png,image/jpeg,image/webp" onChange={e=>setUploadFile(e.target.files?.[0]??null)}/></label><button type="button" disabled={!uploadFile} onClick={()=>void uploadReference()}>Upload reference to private R2</button>{uploadStatus&&<p role="status">{uploadStatus}</p>}</div>
   <div><label>Reference image URL <input type="url" value={referenceUrl} onChange={e=>setReferenceUrl(e.target.value)} placeholder="https://..." /></label></div>
+  <fieldset><legend>Reference use and rights (choose one)</legend>
+   <label><input type="radio" name="referenceUse" checked={referenceUse==="research_only"} onChange={()=>{setReferenceUse("research_only");setRightsConfirmed(false);}}/> Internal visual research only — do not send this image to an AI provider, reproduce, or publish it.</label>
+   <label><input type="radio" name="referenceUse" checked={referenceUse==="licensed_generation"} onChange={()=>{setReferenceUse("licensed_generation");setRightsConfirmed(false);}}/> Licensed/permission-verified generation — may use the image as a generation input after review.</label>
+   <label>Original source page <input type="url" value={sourcePage} onChange={e=>setSourcePage(e.target.value)} placeholder="https://source.example/product"/></label>
+   <label>Rights evidence / permission details <textarea value={rightsEvidence} onChange={e=>{setRightsEvidence(e.target.value);setRightsConfirmed(false);}} placeholder="License, rights holder authorization, and permitted AI/commercial uses"/></label>
+   {referenceUse==="research_only"&&<p role="status">Research-only reference: generation using this image is blocked. Obtain permission or use a separately licensed reference before generating. Independent designs must not reproduce protected photo composition or branding inaccurately.</p>}
+  </fieldset>
   <div><label><input type="checkbox" checked={referenceApproved} onChange={e=>setReferenceApproved(e.target.checked)}/> I inspected and approved the actual reference image</label></div>
-  <div><label><input type="checkbox" checked={rightsConfirmed} onChange={e=>setRightsConfirmed(e.target.checked)}/> I confirmed permission or licensing for intended image use</label></div>
+  <div><label><input type="checkbox" checked={rightsConfirmed} disabled={referenceUse!=="licensed_generation"||!rightsEvidence.trim()} onChange={e=>setRightsConfirmed(e.target.checked)}/> I confirmed permission or licensing for intended image use</label></div>
   <div><label><input type="checkbox" checked={bottleVisuallyVerified} onChange={e=>setBottleVisuallyVerified(e.target.checked)}/> I verified the bottle shape, cap, label and logo visually</label></div>
   <div><label><input type="checkbox" checked={variantConfirmed} onChange={e=>setVariantConfirmed(e.target.checked)}/> I verified the exact product variant</label></div>
   <p role="status"><strong>{preflight.ready?"Preflight complete — generation requires saved draft and enabled provider":"Preflight blocked"}</strong></p>
