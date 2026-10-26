@@ -1,6 +1,7 @@
 import {NextResponse} from "next/server";
 import {createServerSupabaseClient} from "@/lib/supabase/server";
 import {generateGraphicsPreview} from "@/lib/graphics/openai-generation";
+import {parsePrivateReference} from "@/lib/graphics/private-r2";
 import type {GraphicsReviewDraft} from "@/lib/graphics/prepare-job";
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export async function POST(request:Request){
@@ -15,6 +16,11 @@ export async function POST(request:Request){
  if(logs.error)return NextResponse.json({ok:false,reason:"Draft lookup failed"},{status:500});
  const metadata=logs.data?.[0]?.metadata as Record<string,unknown>|undefined;
  if(metadata?.userId!==user.id||!metadata.brief||typeof metadata.brief!=="object")return NextResponse.json({ok:false,reason:"Save an approved review draft first"},{status:409});
- const result=await generateGraphicsPreview(metadata.brief as GraphicsReviewDraft);
+ const draft=metadata.brief as GraphicsReviewDraft;
+ if(draft.referenceUrl?.startsWith("r2://")){
+  const key=parsePrivateReference(draft.referenceUrl);
+  if(!key||!key.startsWith(user.id+"/"+runId+"/"))return NextResponse.json({ok:false,reason:"Private reference does not belong to this run"},{status:403});
+ }
+ const result=await generateGraphicsPreview(draft);
  return NextResponse.json(result,{headers:{"Cache-Control":"no-store","X-Content-Type-Options":"nosniff"}});
 }
