@@ -48,4 +48,10 @@ a:focus-visible,button:focus-visible,summary:focus-visible,input:focus-visible,t
  .coworker-directory>button{min-height:44px}
 }
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important}}
-\n/* Focused Atlas home: primary work first, technical details on demand. */\n.atlas-dashboard-details{margin-top:16px;min-width:0}\n.atlas-dashboard-details .stats{margin-top:12px}\n.atlas-nav>a{min-height:44px;display:flex;align-items:center}\n.atlas-main>.calm-expand{margin-top:16px}\n@media(max-width:800px){.atlas-nav>a{flex:1 1 auto;justify-content:center}.atlas-dashboard-details{overflow-wrap:anywhere}}\n
+
+/* Focused Atlas home: primary work first, technical details on demand. */
+.atlas-dashboard-details{margin-top:16px;min-width:0}
+.atlas-dashboard-details .stats{margin-top:12px}
+.atlas-nav>a{min-height:44px;display:flex;align-items:center}
+.atlas-main>.calm-expand{margin-top:16px}
+@media(max-width:800px){.atlas-nav>a{flex:1 1 auto;justify-content:center}.atlas-dashboard-details{overflow-wrap:anywhere}}
