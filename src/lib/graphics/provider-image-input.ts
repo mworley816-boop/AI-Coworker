@@ -5,6 +5,8 @@
 import {prepareGraphicsJob,type GraphicsReviewDraft} from "./prepare-job";
 import {retrieveTrustedReference} from "./trusted-reference-retrieval";
 import {runtimeEnv} from "@/lib/runtime-env";
+import {parsePrivateReference,referenceBucket} from "./private-r2";
+import {inspectImageResponse} from "./reference-image-inspection";
 export type GraphicsProviderInput={status:"blocked"|"ready";reason:string;prompt?:string;imageBase64?:string;mimeType?:string;requiresOutputApproval:true;mayPublish:false};
 const blocked=(reason:string):GraphicsProviderInput=>({status:"blocked",reason,requiresOutputApproval:true,mayPublish:false});
 function toBase64(bytes:Uint8Array):string{
@@ -16,6 +18,15 @@ export async function prepareProviderImageInput(draft:GraphicsReviewDraft):Promi
  const proposal=prepareGraphicsJob(draft);
  if(proposal.status!=="prepared"||!proposal.referenceUrl||!proposal.prompt)return blocked(proposal.blockers.join("; ")||"Graphics preflight blocked.");
  const env=await runtimeEnv();
+ const key=parsePrivateReference(proposal.referenceUrl);
+ if(key){
+  const bucket=await referenceBucket();if(!bucket)return blocked("Private R2 bucket binding is missing.");
+  const object=await bucket.get(key);if(!object)return blocked("Private reference image was not found.");
+  const bytes=new Uint8Array(await object.arrayBuffer());
+  const inspection=inspectImageResponse(object.httpMetadata?.contentType??null,String(bytes.length),bytes);
+  if(!inspection.ok||!inspection.contentType)return blocked(inspection.reason);
+  return {status:"ready",reason:"Private R2 image loaded; visual identity and rights require reviewer confirmation.",prompt:proposal.prompt,imageBase64:toBase64(bytes),mimeType:inspection.contentType,requiresOutputApproval:true,mayPublish:false};
+ }
  if(!env.ATLAS_TRUSTED_IMAGE_ORIGIN)return blocked("Trusted image origin is not configured.");
  const result=await retrieveTrustedReference(proposal.referenceUrl,env.ATLAS_TRUSTED_IMAGE_ORIGIN);
  if(!result.inspection.ok||!result.bytes||!result.inspection.contentType)return blocked(result.inspection.reason);
