@@ -4,7 +4,7 @@ import {runtimeEnv} from "@/lib/runtime-env";
  * Never return API keys to clients, call a provider, or assume source image rights.
  */
 export type GraphicsProviderReadiness={
- provider:"openai"|"none";configured:boolean;generationEnabled:false;
+ provider:"openai"|"none";configured:boolean;generationEnabled:boolean;
  missing:string[];message:string;
 };
 export async function graphicsProviderReadiness():Promise<GraphicsProviderReadiness>{
@@ -13,5 +13,6 @@ export async function graphicsProviderReadiness():Promise<GraphicsProviderReadin
  if(provider!=="openai")return {provider:"none",configured:false,generationEnabled:false,missing:["ATLAS_GRAPHICS_PROVIDER=openai"],message:"No supported graphics provider selected."};
  const missing:string[]=[];
  if(!env.OPENAI_API_KEY?.trim())missing.push("OPENAI_API_KEY");
- return {provider:"openai",configured:missing.length===0,generationEnabled:false,missing,message:missing.length?"Provider selected but credentials are missing.":"OpenAI credentials detected. Generation remains disabled pending approved reference-image handling and output review."};
+ const enabled=missing.length===0&&env.ATLAS_GRAPHICS_GENERATION_ENABLED==="true"&&Boolean(env.ATLAS_TRUSTED_IMAGE_ORIGIN);
+ return {provider:"openai",configured:missing.length===0,generationEnabled:enabled,missing,message:missing.length?"Provider selected but credentials are missing.":enabled?"Private preview generation enabled; publication remains disabled.":"Credentials detected; set ATLAS_GRAPHICS_GENERATION_ENABLED=true and ATLAS_TRUSTED_IMAGE_ORIGIN to enable private previews."};
 }

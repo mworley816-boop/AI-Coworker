@@ -17,6 +17,9 @@ export default function ArtworkPreflightPanel({runId}:{runId:string}){
  const [requestStatus,setRequestStatus]=useState("");
  const [providerStatus,setProviderStatus]=useState("");
  const [inspectionStatus,setInspectionStatus]=useState("");
+ const [generationStatus,setGenerationStatus]=useState("");
+ const [previewUrl,setPreviewUrl]=useState("");
+ const [generating,setGenerating]=useState(false);
  const [requestCount,setRequestCount]=useState<number|null>(null);
  const [proposalPrompt,setProposalPrompt]=useState("");
  useEffect(()=>{let active=true;(async()=>{try{const response=await fetch("/api/graphics/review-draft?runId="+encodeURIComponent(runId));const result=await response.json() as {ok?:boolean;draft?:Record<string,unknown>;savedAt?:string};if(!active)return;if(!response.ok||!result.ok){setDraftStatus("Could not load saved draft.");return;}const d=result.draft;if(!d)return;
@@ -29,6 +32,11 @@ export default function ArtworkPreflightPanel({runId}:{runId:string}){
  }catch{if(active)setDraftStatus("Could not load saved draft.");}})();return()=>{active=false;};},[runId]);
  async function inspectReference(){setInspectionStatus("Checking reference…");try{const response=await fetch("/api/graphics/inspect-reference",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({referenceUrl})});const result=await response.json() as {ok?:boolean;reason?:string;inspection?:{ok:boolean;reason:string}};setInspectionStatus(result.inspection?.reason??result.reason??"Inspection failed.");}catch{setInspectionStatus("Inspection request failed.");}}
  async function checkProvider(){setProviderStatus("Checking provider configuration…");try{const response=await fetch("/api/graphics/provider-status");const result=await response.json() as {ok?:boolean;reason?:string;readiness?:{provider:string;configured:boolean;generationEnabled:boolean;missing:string[];message:string}};if(!response.ok||!result.ok){setProviderStatus(result.reason??"Provider check failed.");return;}const r=result.readiness;if(r)setProviderStatus(r.message+(r.missing.length?" Missing: "+r.missing.join(", "):"")+" Generation enabled: "+(r.generationEnabled?"yes":"no")+".");}catch{setProviderStatus("Provider check failed.");}}
+ async function generatePreview(){
+  if(!window.confirm("Generate a new private graphics preview using your saved review draft? This sends the reference image to OpenAI and may incur API charges. It does not approve or publish artwork."))return;
+  setGenerating(true);setGenerationStatus("Generating preview…");setPreviewUrl("");
+  try{const response=await fetch("/api/graphics/generate-preview",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({runId})});const result=await response.json() as {ok:boolean;reason:string;imageDataUrl?:string};setGenerationStatus(result.reason??"Generation failed.");if(response.ok&&result.ok&&result.imageDataUrl)setPreviewUrl(result.imageDataUrl);}catch{setGenerationStatus("Generation request failed.");}finally{setGenerating(false);}
+ }
  async function recordRequest(){setRequestStatus("Recording request…");try{const response=await fetch("/api/graphics/requests",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({runId})});const result=await response.json() as {ok?:boolean;reason?:string;blockers?:string[]};setRequestStatus(response.ok&&result.ok?"Request recorded — awaiting image-generation provider.":(result.reason??"Request failed.")+(result.blockers?.length?" "+result.blockers.join(" "):""));if(response.ok&&result.ok)void loadRequests();}catch{setRequestStatus("Request failed.");}}
  async function loadRequests(){try{const response=await fetch("/api/graphics/requests?runId="+encodeURIComponent(runId));const result=await response.json() as {ok?:boolean;requests?:unknown[]};if(response.ok&&result.ok)setRequestCount(result.requests?.length??0);}catch{setRequestStatus("Could not load request history.");}}
  async function prepareJob(){setProposalStatus("Preparing proposal…");setProposalPrompt("");try{const response=await fetch("/api/graphics/prepare-job",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({runId})});const result=await response.json() as {ok?:boolean;reason?:string;proposal?:{status:string;blockers:string[];prompt:string|null}};if(!response.ok||!result.ok){setProposalStatus(result.reason??"Preparation failed.");return;}const proposal=result.proposal;if(!proposal){setProposalStatus("No proposal returned.");return;}if(proposal.status==="blocked"){setProposalStatus("Blocked: "+proposal.blockers.join(" "));return;}setProposalPrompt(proposal.prompt??"");setProposalStatus("Proposal prepared from your last saved draft. No image has been generated.");}catch{setProposalStatus("Preparation failed.");}}
@@ -46,7 +54,7 @@ export default function ArtworkPreflightPanel({runId}:{runId:string}){
   <div><label><input type="checkbox" checked={rightsConfirmed} onChange={e=>setRightsConfirmed(e.target.checked)}/> I confirmed permission or licensing for intended image use</label></div>
   <div><label><input type="checkbox" checked={bottleVisuallyVerified} onChange={e=>setBottleVisuallyVerified(e.target.checked)}/> I verified the bottle shape, cap, label and logo visually</label></div>
   <div><label><input type="checkbox" checked={variantConfirmed} onChange={e=>setVariantConfirmed(e.target.checked)}/> I verified the exact product variant</label></div>
-  <p role="status"><strong>{preflight.ready?"Preflight complete — generation remains a separate, unavailable step":"Preflight blocked"}</strong></p>
+  <p role="status"><strong>{preflight.ready?"Preflight complete — generation requires saved draft and enabled provider":"Preflight blocked"}</strong></p>
   {preflight.blockers.length>0&&<ul>{preflight.blockers.map(item=><li key={item}>{item}</li>)}</ul>}
   {preflight.ready&&<div><h5>Generation instructions</h5><ul>{preflight.instructions.map(item=><li key={item}>{item}</li>)}</ul></div>}
   <button type="button" onClick={()=>void saveDraft()}>Save review draft</button>
@@ -58,6 +66,9 @@ export default function ArtworkPreflightPanel({runId}:{runId:string}){
   {inspectionStatus&&<p role="status">{inspectionStatus}</p>}
   <button type="button" onClick={()=>void checkProvider()}>Check graphics provider</button>
   {providerStatus&&<p role="status">{providerStatus}</p>}
+  <button type="button" disabled={generating} onClick={()=>void generatePreview()}>{generating?"Generating…":"Generate private preview (OpenAI)"}</button>
+  {generationStatus&&<p role="status">{generationStatus}</p>}
+  {previewUrl&&<div><p>Unapproved generated preview — inspect bottle accuracy before use. Not saved or published.</p><img src={previewUrl} alt="Unapproved generated perfume graphics preview" style={{maxWidth:"100%",height:"auto"}}/></div>}
   <button type="button" onClick={()=>void recordRequest()}>Record generation request</button>
   <button type="button" onClick={()=>void loadRequests()}>Refresh request history</button>
   {requestStatus&&<p role="status">{requestStatus}</p>}
