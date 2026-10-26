@@ -1,6 +1,7 @@
 import {validateReferenceUrl} from "./reference-url-safety";
 import {runtimeEnv} from "@/lib/runtime-env";
 import {retrieveTrustedReference} from "./trusted-reference-retrieval";
+import {parsePrivateReference,referenceBucket} from "./private-r2";
 /**
  * Inspect a remote reference without returning or persisting its bytes.
  * This is a transport/media check, NOT product identity, authenticity or rights verification.
@@ -10,6 +11,13 @@ const maxBytes=8*1024*1024;
 const allowedTypes=new Set(["image/jpeg","image/png","image/webp"]);
 const fail=(reason:string):ImageInspection=>({ok:false,reason,requiresVisualReview:true,rightsVerified:false});
 export async function inspectReferenceImage(referenceUrl:string):Promise<ImageInspection>{
+ const key=parsePrivateReference(referenceUrl);
+ if(key){
+  const bucket=await referenceBucket();if(!bucket)return fail("Private R2 bucket binding is missing.");
+  const object=await bucket.get(key);if(!object)return fail("Private reference not found.");
+  const bytes=new Uint8Array(await object.arrayBuffer());
+  return inspectImageResponse(object.httpMetadata?.contentType??null,String(bytes.length),bytes);
+ }
  const check=validateReferenceUrl(referenceUrl);if(!check.valid||!check.normalizedUrl)return fail(check.reason);
  const env=await runtimeEnv();
  if(!env.ATLAS_TRUSTED_IMAGE_ORIGIN)return fail("Trusted image origin is not configured; arbitrary external image URLs cannot be fetched.");
