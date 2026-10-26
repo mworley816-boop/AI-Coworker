@@ -7,11 +7,27 @@
   ],
   "keep_vars": true,
   "services": [
-    { "binding": "ATLAS_RESEARCH_PROXY", "service": "atlas-research-proxy" }
+    {
+      "binding": "ATLAS_RESEARCH_PROXY",
+      "service": "atlas-research-proxy"
+    }
   ],
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
-  "main": ".open-next/worker.js"
+  "main": ".open-next/worker.js",
+  "r2_buckets": [
+    {
+      "binding": "ATLAS_PERFUME_REFERENCES",
+      "bucket_name": "atlas-perfume-references"
+    }
+  ],
+  "observability": {
+    "enabled": true,
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 1
+    }
+  }
 }
