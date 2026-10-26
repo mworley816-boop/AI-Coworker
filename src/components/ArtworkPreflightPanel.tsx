@@ -7,6 +7,8 @@ const candidate: BottleVariantAssessment={status:"candidate",matchedFields:["bra
 export default function ArtworkPreflightPanel({runId}:{runId:string}){
  const [brand,setBrand]=useState("");const [perfumeName,setPerfumeName]=useState("");
  const [referenceUrl,setReferenceUrl]=useState("");
+ const [uploadFile,setUploadFile]=useState<File|null>(null);
+ const [uploadStatus,setUploadStatus]=useState("");
  const [artworkType,setArtworkType]=useState<GraphicsBrief["artworkType"]>("catalog_card");
  const [referenceApproved,setReferenceApproved]=useState(false);
  const [rightsConfirmed,setRightsConfirmed]=useState(false);
@@ -31,6 +33,19 @@ export default function ArtworkPreflightPanel({runId}:{runId:string}){
  setReferenceApproved(d.referenceApproved===true);setRightsConfirmed(d.rightsConfirmed===true);setBottleVisuallyVerified(d.bottleVisuallyVerified===true);setVariantConfirmed(d.variantConfirmed===true);
  setDraftStatus("Saved draft restored. Recheck all attestations before use.");
  }catch{if(active)setDraftStatus("Could not load saved draft.");}})();return()=>{active=false;};},[runId]);
+ async function uploadReference(){
+  if(!uploadFile)return;
+  setUploadStatus("Uploading private reference…");
+  const form=new FormData();form.set("runId",runId);form.set("image",uploadFile);
+  try{
+   const response=await fetch("/api/graphics/upload-reference",{method:"POST",body:form});
+   const result=await response.json() as {ok?:boolean;reason?:string;referenceUrl?:string};
+   if(response.ok&&result.ok&&result.referenceUrl){
+    setReferenceUrl(result.referenceUrl);setReferenceApproved(false);setRightsConfirmed(false);setBottleVisuallyVerified(false);setVariantConfirmed(false);
+    setUploadStatus("Private image saved. Inspect the original and confirm rights and bottle identity before approving.");
+   }else setUploadStatus(result.reason??"Upload failed.");
+  }catch{setUploadStatus("Upload failed.");}
+ }
  async function inspectReference(){setInspectionStatus("Checking reference…");try{const response=await fetch("/api/graphics/inspect-reference",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({referenceUrl})});const result=await response.json() as {ok?:boolean;reason?:string;inspection?:{ok:boolean;reason:string}};setInspectionStatus(result.inspection?.reason??result.reason??"Inspection failed.");}catch{setInspectionStatus("Inspection request failed.");}}
  async function checkProvider(){setProviderStatus("Checking provider configuration…");try{const response=await fetch("/api/graphics/provider-status");const result=await response.json() as {ok?:boolean;reason?:string;readiness?:{provider:string;configured:boolean;generationEnabled:boolean;missing:string[];message:string;checks?:{name:string;ready:boolean;detail:string}[]}};if(!response.ok||!result.ok){setProviderStatus(result.reason??"Provider check failed.");return;}const r=result.readiness;if(r){setProviderStatus(r.message);setProviderChecks(r.checks??[]);}}catch{setProviderStatus("Provider check failed.");}}
  async function generatePreview(){
@@ -50,6 +65,7 @@ export default function ArtworkPreflightPanel({runId}:{runId:string}){
   <div><label>Brand <input value={brand} onChange={e=>setBrand(e.target.value)} placeholder="Perfume brand"/></label></div>
   <div><label>Perfume name <input value={perfumeName} onChange={e=>setPerfumeName(e.target.value)} placeholder="Exact fragrance and edition"/></label></div>
   <div><label>Artwork type <select value={artworkType} onChange={e=>setArtworkType(e.target.value as GraphicsBrief["artworkType"])}><option value="catalog_card">Catalog card</option><option value="social_square">Social square</option><option value="banner">Banner</option></select></label></div>
+  <div><label>Upload private bottle reference (PNG, JPG, or WebP, up to 8 MiB) <input type="file" accept="image/png,image/jpeg,image/webp" onChange={e=>setUploadFile(e.target.files?.[0]??null)}/></label><button type="button" disabled={!uploadFile} onClick={()=>void uploadReference()}>Upload reference to private R2</button>{uploadStatus&&<p role="status">{uploadStatus}</p>}</div>
   <div><label>Reference image URL <input type="url" value={referenceUrl} onChange={e=>setReferenceUrl(e.target.value)} placeholder="https://..." /></label></div>
   <div><label><input type="checkbox" checked={referenceApproved} onChange={e=>setReferenceApproved(e.target.checked)}/> I inspected and approved the actual reference image</label></div>
   <div><label><input type="checkbox" checked={rightsConfirmed} onChange={e=>setRightsConfirmed(e.target.checked)}/> I confirmed permission or licensing for intended image use</label></div>
