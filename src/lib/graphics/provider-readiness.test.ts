@@ -19,3 +19,14 @@ test("graphics readiness rejects local and non-HTTPS image origins",()=>{
   assert.equal(r.generationEnabled,false);
  }
 });
+
+test("private R2 binding satisfies image source without public origin",()=>{
+ const r=assessGraphicsProviderConfig({ATLAS_GRAPHICS_PROVIDER:"openai",OPENAI_API_KEY:"secret",ATLAS_GRAPHICS_GENERATION_ENABLED:"true"},true);
+ assert.equal(r.generationEnabled,true);
+ assert.match(r.checks[2].detail,/Private R2/);
+});
+test("missing R2 binding and public origin blocks generation",()=>{
+ const r=assessGraphicsProviderConfig({ATLAS_GRAPHICS_PROVIDER:"openai",OPENAI_API_KEY:"secret",ATLAS_GRAPHICS_GENERATION_ENABLED:"true"},false);
+ assert.equal(r.generationEnabled,false);
+ assert.equal(r.checks[2].ready,false);
+});
