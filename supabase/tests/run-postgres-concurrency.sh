@@ -17,9 +17,9 @@ create table runs(id uuid primary key,task_id uuid not null references tasks(id)
 create table run_steps(id uuid primary key,run_id uuid not null,status text not null default 'queued');
 create table approvals(id uuid primary key,run_id uuid not null);
 SQL
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261026_worker_parent_task_claim_lock.sql >/dev/null
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261026_worker_reassignment_lease_guard.sql >/dev/null
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261026_manual_claim_parent_task_lock.sql >/dev/null
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261027010001_worker_parent_task_claim_lock.sql >/dev/null
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261027010003_worker_reassignment_lease_guard.sql >/dev/null
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261027010002_manual_claim_parent_task_lock.sql >/dev/null
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 <<'SQL'
 insert into coworkers values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','11111111-1111-1111-1111-111111111111'),('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','11111111-1111-1111-1111-111111111111');
 insert into tasks values ('cccccccc-cccc-cccc-cccc-cccccccccccc','11111111-1111-1111-1111-111111111111','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','queued',now());
