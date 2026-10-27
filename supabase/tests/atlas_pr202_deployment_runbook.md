@@ -7,7 +7,7 @@
 - Take a backup / confirm restore procedure and select a low-traffic maintenance window.
 
 ## Required database order
-1. Install the **base-branch** migration `supabase/migrations/20261026_atomic_task_reassignment.sql` first. The deployed reassignment API already invokes `reassign_queued_task_atomic`, which was missing on 2026-10-26.
+1. Install the **base-branch** migration `supabase/migrations/20261027010000_atomic_task_reassignment.sql` first. The deployed reassignment API already invokes `reassign_queued_task_atomic`, which was missing on 2026-10-26.
 2. Install `20261027010001_worker_parent_task_claim_lock.sql`.
 3. Install `20261027010002_manual_claim_parent_task_lock.sql`.
 4. Install `20261027010003_worker_reassignment_lease_guard.sql` last to replace the initial reassignment function with active-lease rejection.
