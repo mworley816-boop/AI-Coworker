@@ -14,7 +14,7 @@ export function validateResearchEvidence(candidate) {
       const url = new URL(candidate[key]);
       if (url.protocol !== 'https:' || url.username || url.password || url.port || !url.hostname.includes('.') ||
           url.hostname.endsWith('.local') || url.hostname === 'localhost' ||
-          /^\\d+\\.\\d+\\.\\d+\\.\\d+$/.test(url.hostname) || url.hostname.includes(':'))
+          /^[0-9]+[.][0-9]+[.][0-9]+[.][0-9]+$/.test(url.hostname) || url.hostname.includes(':'))
         return 'invalid_' + key;
     } catch { return 'invalid_' + key; }
   }
