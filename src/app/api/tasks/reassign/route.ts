@@ -16,19 +16,10 @@ export async function POST(request:Request){
  const {data:coworker,error:coworkerError}=await s.from("coworkers").select("id").eq("id",body.coworkerId).eq("user_id",user.id).maybeSingle();
  if(coworkerError)return NextResponse.json({ok:false,reason:"Coworker lookup failed"},{status:500});
  if(!coworker)return NextResponse.json({ok:false,reason:"Coworker not found"},{status:404});
- const {data:runs,error:runsError}=await s.from("runs").select("id,status").eq("task_id",task.id);
- if(runsError)return NextResponse.json({ok:false,reason:"Run lookup failed"},{status:500});
- if(!runs?.length||runs.some(r=>r.status!=="queued"))return NextResponse.json({ok:false,reason:"Reassignment requires all runs to be queued"},{status:409});
- const runIds=runs.map(r=>r.id);
- const {data:steps,error:stepsError}=await s.from("run_steps").select("id,status").in("run_id",runIds).neq("status","queued").limit(1);
- if(stepsError)return NextResponse.json({ok:false,reason:"Run step check failed"},{status:500});
- if(steps?.length)return NextResponse.json({ok:false,reason:"This task has already started processing"},{status:409});
- const {data:approvals,error:approvalError}=await s.from("approvals").select("id").in("run_id",runIds).limit(1);
- if(approvalError)return NextResponse.json({ok:false,reason:"Approval check failed"},{status:500});
- if(approvals?.length)return NextResponse.json({ok:false,reason:"Tasks with approval history cannot be reassigned"},{status:409});
- const update=await s.from("tasks").update({coworker_id:coworker.id}).eq("id",task.id).eq("user_id",user.id).eq("status","queued").eq("coworker_id",task.coworker_id).select("id").maybeSingle();
- if(update.error)return NextResponse.json({ok:false,reason:"Reassignment failed"},{status:500});
- if(!update.data)return NextResponse.json({ok:false,reason:"Task changed before reassignment"},{status:409});
- await s.from("activity_logs").insert({run_id:runIds[0],event_type:"task.reassigned",message:"Queued task assigned to another coworker.",metadata:{userId:user.id,taskId:task.id,fromCoworkerId:task.coworker_id,toCoworkerId:coworker.id}});
+ const {data:changed,error:changeError}=await s.rpc("reassign_queued_task_atomic",{p_task_id:task.id,p_coworker_id:coworker.id});
+ if(changeError)return NextResponse.json({ok:false,reason:"Atomic reassignment unavailable. Apply the database migration before using this feature."},{status:503});
+ if(!changed)return NextResponse.json({ok:false,reason:"Task is no longer eligible for reassignment. Refresh tasks."},{status:409});
+ const {data:firstRun}=await s.from("runs").select("id").eq("task_id",task.id).order("created_at",{ascending:true}).limit(1).maybeSingle();
+ if(firstRun)await s.from("activity_logs").insert({run_id:firstRun.id,event_type:"task.reassigned",message:"Queued task assigned to another coworker.",metadata:{userId:user.id,taskId:task.id,fromCoworkerId:task.coworker_id,toCoworkerId:coworker.id}});
  return NextResponse.json({ok:true,taskId:task.id,coworkerId:coworker.id});
 }
