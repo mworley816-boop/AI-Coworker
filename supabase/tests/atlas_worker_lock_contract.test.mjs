@@ -32,3 +32,16 @@ test("manual lease claims lock the parent task before changing a run lease",()=>
   assert.match(manualSql,/r\.id=p_run_id and r\.task_id=v_task_id/);
   assert.match(manualSql,/grant execute on function public\.claim_run_lease\(uuid,text,integer\) to authenticated/);
 });
+
+const prerequisiteSql=readFileSync("supabase/migrations/20261027010000_atomic_task_reassignment.sql","utf8");
+test("timestamped prerequisite provides the reassignment function before the lease guard",()=>{
+  assert.match(prerequisiteSql,/create or replace function public\.reassign_queued_task_atomic\(/);
+  assert.match(guardSql,/create or replace function public\.reassign_queued_task_atomic\(/);
+  const migrations=[
+    "20261027010000_atomic_task_reassignment.sql",
+    "20261027010001_worker_parent_task_claim_lock.sql",
+    "20261027010002_manual_claim_parent_task_lock.sql",
+    "20261027010003_worker_reassignment_lease_guard.sql"
+  ];
+  assert.deepEqual(migrations,[...migrations].sort());
+});
