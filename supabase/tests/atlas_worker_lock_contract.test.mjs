@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {test} from "node:test";
 
-const workerSql=readFileSync("supabase/migrations/20261026_worker_parent_task_claim_lock.sql","utf8");
-const guardSql=readFileSync("supabase/migrations/20261026_worker_reassignment_lease_guard.sql","utf8");
+const workerSql=readFileSync("supabase/migrations/20261027010001_worker_parent_task_claim_lock.sql","utf8");
+const guardSql=readFileSync("supabase/migrations/20261027010003_worker_reassignment_lease_guard.sql","utf8");
 
 test("worker claims lock the task before the run",()=>{
   const taskLock=workerSql.indexOf("for update of t skip locked");
@@ -24,7 +24,7 @@ test("reassignment rejects active worker leases",()=>{
   assert.match(guardSql,/auth\.uid\(\)/);
 });
 
-const manualSql=readFileSync("supabase/migrations/20261026_manual_claim_parent_task_lock.sql","utf8");
+const manualSql=readFileSync("supabase/migrations/20261027010002_manual_claim_parent_task_lock.sql","utf8");
 
 test("manual lease claims lock the parent task before changing a run lease",()=>{
   assert.match(manualSql,/from public\.tasks t where t\.id=v_task_id for update of t/);
