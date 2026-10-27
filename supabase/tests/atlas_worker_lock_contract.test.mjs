@@ -23,3 +23,12 @@ test("reassignment rejects active worker leases",()=>{
   assert.match(guardSql,/for update/);
   assert.match(guardSql,/auth\.uid\(\)/);
 });
+
+const manualSql=readFileSync("supabase/migrations/20261026_manual_claim_parent_task_lock.sql","utf8");
+
+test("manual lease claims lock the parent task before changing a run lease",()=>{
+  assert.match(manualSql,/from public\.tasks t where t\.id=v_task_id for update of t/);
+  assert.ok(manualSql.indexOf("for update of t") < manualSql.indexOf("update public.runs r"));
+  assert.match(manualSql,/r\.id=p_run_id and r\.task_id=v_task_id/);
+  assert.match(manualSql,/grant execute on function public\.claim_run_lease\(uuid,text,integer\) to authenticated/);
+});
