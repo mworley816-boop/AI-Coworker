@@ -48,3 +48,33 @@ psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "update runs set lease_expires_at=now
 reclaimed=$(psql "$DATABASE_URL" -At -c "select id from public.claim_run_lease('dddddddd-dddd-dddd-dddd-dddddddddddd','manual',60)")
 test "$reclaimed" = dddddddd-dddd-dddd-dddd-dddddddddddd || { echo "Expired lease could not be reclaimed"; exit 1; }
 echo "PostgreSQL lease and reassignment smoke tests passed."
+
+
+# Deterministic worker-vs-reassignment race: hold parent task lock while
+# committing a new worker lease, then ensure the waiting reassignment fails.
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "update public.runs set lease_owner=null,lease_expires_at=null where id='dddddddd-dddd-dddd-dddd-dddddddddddd'" >/dev/null
+ready_file=$(mktemp)
+rm -f "$ready_file"
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 > /dev/null <<SQL &
+begin;
+select 1 from public.tasks where id='cccccccc-cccc-cccc-cccc-cccccccccccc' for update;
+select pg_sleep(2);
+select id from public.claim_run_lease('dddddddd-dddd-dddd-dddd-dddddddddddd','race-worker',60);
+commit;
+SQL
+holder=$!
+sleep 0.5
+psql "$DATABASE_URL" -At -v ON_ERROR_STOP=1 > "$ready_file" <<'SQL' &
+set request.jwt.claim.sub='11111111-1111-1111-1111-111111111111';
+select public.reassign_queued_task_atomic('cccccccc-cccc-cccc-cccc-cccccccccccc','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb');
+SQL
+contender=$!
+sleep 0.5
+if ! kill -0 "$contender" 2>/dev/null; then
+  echo "Reassignment did not wait for the held parent task lock"; exit 1
+fi
+wait "$holder"
+wait "$contender"
+test "$(tail -n 1 "$ready_file")" = f || { echo "Reassignment succeeded despite worker lease"; exit 1; }
+rm -f "$ready_file"
+echo "Deterministic parent-lock race passed."
