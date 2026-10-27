@@ -1,0 +1,28 @@
+name: PostgreSQL concurrency smoke tests
+on:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  postgres-concurrency:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: atlas_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d atlas_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test disposable PostgreSQL database
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/atlas_test
+        run: bash supabase/tests/run-postgres-concurrency.sh
