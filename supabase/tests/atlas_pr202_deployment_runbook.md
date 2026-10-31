@@ -13,6 +13,12 @@
 ## Pre-deployment gates (all required)
 - [ ] Restore workflow completes with verified application COPY row counts; record the run URL.
 - [ ] Disposable PostgreSQL concurrency tests pass for competing worker claims and reassignment, including active lease rejection.
+  - [ ] Two automatic workers competing for one queued run cannot both acquire an active lease.
+  - [ ] Manual claim and automatic claim on the same run serialize through the parent task lock.
+  - [ ] Reassignment racing with a worker claim either completes before claim or is rejected once an active lease exists.
+  - [ ] Reassignment of a running/non-queued task is rejected; unauthorized owners cannot reassign.
+  - [ ] Concurrent claims across different tasks can progress without deadlock or indefinite waiting.
+  - [ ] Verify lease expiry and same-owner renewal behavior against the intended policy.
 - [ ] Verify, typecheck/build, and batch quality gate pass on the deployment commit.
 - [ ] Compare the hosted migration history to the four migration filenames and confirm ordering; do not assume the files are unapplied.
 - [ ] Review function grants, hosted RLS expectations, and a rollback plan.
