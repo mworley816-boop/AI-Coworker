@@ -1,0 +1,32 @@
+name: Atlas Worker Claim Contract Tests
+
+on:
+  push:
+    branches:
+      - build/mvp-foundation
+    paths:
+      - "supabase/tests/worker-claim-migration-contract.test.mjs"
+      - "supabase/migrations/2026102701000*.sql"
+      - ".github/workflows/worker-claim-contract-tests.yml"
+  pull_request:
+    paths:
+      - "supabase/tests/worker-claim-migration-contract.test.mjs"
+      - "supabase/migrations/2026102701000*.sql"
+      - ".github/workflows/worker-claim-contract-tests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  static-contracts:
+    name: Verify worker claim migration contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Run migration contract tests
+        run: node --test supabase/tests/worker-claim-migration-contract.test.mjs
