@@ -51,3 +51,5 @@ Use proper unique timestamped migration names when applying through Supabase CLI
 
 ## Safety
 No migration has been applied by this runbook. Do not apply production migrations until every pre-deployment gate is confirmed. Development and non-production testing may continue while the restore integrity gate is pending.
+
+- [x] Disposable PostgreSQL task-lock exclusion test passed in [GitHub Actions run 41214962458](https://github.com/mworley816-boop/AI-Coworker/actions/runs/41214962458): a parent task row held FOR UPDATE blocks worker claiming until released. Full atomic reassignment and authorization testing remain pending.
