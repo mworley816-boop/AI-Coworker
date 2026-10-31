@@ -14,6 +14,8 @@
 - [ ] Restore workflow completes with verified application COPY row counts; record the run URL.
 - [ ] Disposable PostgreSQL concurrency tests pass for competing worker claims and reassignment, including active lease rejection.
   - [x] Static worker migration contract tests passed (5/5) in [GitHub Actions run 41205692233](https://github.com/mworley816-boop/AI-Coworker/actions/runs/41205692233); these do not substitute for database-level concurrency tests.
+  - [x] Disposable PostgreSQL 17 smoke test passed in [GitHub Actions run 41207291096](https://github.com/mworley816-boop/AI-Coworker/actions/runs/41207291096): two concurrent worker claims acquired distinct tasks; manual lease stealing rejected; same-owner renewal and expired-lease recovery passed.
+  - [ ] Full concurrent reassignment-vs-claim, owner authorization/RLS, and deadlock test cases still required; do not treat smoke-test success as completion of this gate.
   - [ ] Two automatic workers competing for one queued run cannot both acquire an active lease.
   - [ ] Manual claim and automatic claim on the same run serialize through the parent task lock.
   - [ ] Reassignment racing with a worker claim either completes before claim or is rejected once an active lease exists.
