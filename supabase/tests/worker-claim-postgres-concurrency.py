@@ -32,7 +32,7 @@ def prepare():
         conn.execute("CREATE TABLE public.tasks (id uuid primary key, status text not null, created_at timestamptz default now())")
         conn.execute("CREATE TABLE public.runs (id uuid primary key, task_id uuid references public.tasks(id), status text not null, created_at timestamptz default now(), lease_owner text, lease_expires_at timestamptz)")
         conn.execute("CREATE SCHEMA auth")
-        conn.execute("CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $ SELECT nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $")
+        conn.execute("CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS 'SELECT nullif(current_setting(''request.jwt.claim.sub'',true),'''')::uuid'")
         conn.execute("ALTER TABLE public.tasks ADD COLUMN user_id uuid")
         conn.execute("ALTER TABLE public.tasks ADD COLUMN coworker_id uuid")
         conn.execute("CREATE TABLE public.coworkers(id uuid primary key,user_id uuid not null)")
