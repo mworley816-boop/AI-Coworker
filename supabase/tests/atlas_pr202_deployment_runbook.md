@@ -1,10 +1,22 @@
-# Atlas PR #202 — deployment runbook
+# Atlas worker concurrency migrations — deployment runbook
 
 ## Prerequisites
-- GitHub PR #202 remains draft until rollout approval.
+- PR #202 has been merged; merging does **not** authorize production database changes.
+- Obtain explicit rollout approval after all gates below pass.
 - Disposable PostgreSQL concurrency workflow, Verify, and batch quality gate must be green.
 - Hosted AI-Coworker Supabase project: `glsnhuimpzyudofpvlfq`. Never target the Scentmarked project.
-- Take a backup / confirm restore procedure and select a low-traffic maintenance window.
+- Encrypted backup creation has passed and disposable application schema/data restoration has passed.
+- **BLOCKED:** the additional COPY row-count integrity check has not passed yet; rerun the corrected restore workflow and retain its successful run URL before any production migration.
+- Confirm artifact availability or create a fresh encrypted backup if the one-day retention window has expired.
+- Select a low-traffic maintenance window and confirm a rollback owner.
+
+## Pre-deployment gates (all required)
+- [ ] Restore workflow completes with verified application COPY row counts; record the run URL.
+- [ ] Disposable PostgreSQL concurrency tests pass for competing worker claims and reassignment, including active lease rejection.
+- [ ] Verify, typecheck/build, and batch quality gate pass on the deployment commit.
+- [ ] Compare the hosted migration history to the four migration filenames and confirm ordering; do not assume the files are unapplied.
+- [ ] Review function grants, hosted RLS expectations, and a rollback plan.
+- [ ] Receive explicit approval for production migration deployment.
 
 ## Required database order
 1. Install the **base-branch** migration `supabase/migrations/20261027010000_atomic_task_reassignment.sql` first. The deployed reassignment API already invokes `reassign_queued_task_atomic`, which was missing on 2026-10-26.
@@ -29,4 +41,4 @@ Use proper unique timestamped migration names when applying through Supabase CLI
 - Re-run smoke checks and review queued/running task consistency.
 
 ## Safety
-No migration has been applied by this runbook. Do not merge or deploy until the migration names, order, and hosted RLS checks are reviewed.
+No migration has been applied by this runbook. Do not apply production migrations until every pre-deployment gate is confirmed. Development and non-production testing may continue while the restore integrity gate is pending.
