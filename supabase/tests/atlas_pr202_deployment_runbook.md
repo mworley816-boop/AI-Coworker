@@ -13,6 +13,7 @@
 ## Pre-deployment gates (all required)
 - [ ] Restore workflow completes with verified application COPY row counts; record the run URL.
 - [ ] Disposable PostgreSQL concurrency tests pass for competing worker claims and reassignment, including active lease rejection.
+  - [x] Static worker migration contract tests passed (5/5) in [GitHub Actions run 41205692233](https://github.com/mworley816-boop/AI-Coworker/actions/runs/41205692233); these do not substitute for database-level concurrency tests.
   - [ ] Two automatic workers competing for one queued run cannot both acquire an active lease.
   - [ ] Manual claim and automatic claim on the same run serialize through the parent task lock.
   - [ ] Reassignment racing with a worker claim either completes before claim or is rejected once an active lease exists.
