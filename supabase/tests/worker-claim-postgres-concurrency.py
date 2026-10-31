@@ -72,6 +72,24 @@ def main():
         assert len(recovered) == 1, "Expired lease recovery failed"
         print("PASS: expired manual lease recovery")
 
+    # With only one fresh queued run, competing workers must not both claim it.
+    # Existing runs are actively leased and therefore ineligible for new owners.
+    solo_task, solo_run = str(uuid.uuid4()), str(uuid.uuid4())
+    with connect() as conn:
+        conn.execute("INSERT INTO public.tasks(id,status) VALUES (%s,'queued')", (solo_task,))
+        conn.execute("INSERT INTO public.runs(id,task_id,status) VALUES (%s,%s,'queued')", (solo_run, solo_task))
+    for attempt in range(5):
+        with connect() as conn:
+            conn.execute("UPDATE public.runs SET lease_owner=NULL, lease_expires_at=NULL WHERE id=%s", (solo_run,))
+        barrier = threading.Barrier(2)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
+            futures = [pool.submit(claim, owner, barrier) for owner in ("solo-a", "solo-b")]
+            results = [f.result(timeout=20) for f in futures]
+        claimed = [str(row[0]) for rows in results for row in rows]
+        assert claimed == [solo_run], f"Single-run claim collision in attempt {attempt + 1}: {len(claimed)}"
+    print("PASS: five simultaneous single-run claim races yielded one winner each")
+
+
 
 if __name__ == "__main__":
     main()
