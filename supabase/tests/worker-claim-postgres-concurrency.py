@@ -156,6 +156,35 @@ def main():
         denied = conn.execute("SELECT public.reassign_queued_task_atomic(%s,%s)", (eligible_task,COWORKER_A)).fetchone()[0]
         assert denied is False, "Reassignment bypassed active lease guard"
         print("PASS: atomic reassignment rejects active worker lease")
+        # RLS is checked under the actual authenticated database role rather
+        # than under the postgres superuser used for the concurrency fixtures.
+        conn.execute("ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY")
+        conn.execute("ALTER TABLE public.coworkers ENABLE ROW LEVEL SECURITY")
+        conn.execute("CREATE POLICY task_owner_select ON public.tasks FOR SELECT TO authenticated USING (user_id = auth.uid())")
+        conn.execute("CREATE POLICY task_owner_update ON public.tasks FOR UPDATE TO authenticated USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid())")
+        conn.execute("CREATE POLICY coworker_owner_select ON public.coworkers FOR SELECT TO authenticated USING (user_id = auth.uid())")
+        for table in ("tasks", "coworkers", "runs", "run_steps", "approvals"):
+            conn.execute(f"GRANT SELECT ON public.{table} TO authenticated")
+        conn.execute("GRANT UPDATE(coworker_id) ON public.tasks TO authenticated")
+        conn.execute("GRANT USAGE ON SCHEMA auth TO authenticated")
+        conn.execute("GRANT EXECUTE ON FUNCTION auth.uid() TO authenticated")
+        conn.execute("GRANT USAGE ON SCHEMA public TO authenticated")
+        conn.execute("GRANT SELECT ON public.tasks, public.coworkers TO anon")
+        conn.execute("GRANT USAGE ON SCHEMA auth,public TO anon")
+        conn.execute("GRANT EXECUTE ON FUNCTION auth.uid() TO anon")
+
+    with connect() as conn:
+        conn.execute("SET ROLE authenticated")
+        conn.execute("SELECT set_config('request.jwt.claim.sub',%s,false)", (OTHER_USER,))
+        hidden = conn.execute("SELECT id FROM public.tasks WHERE id=%s", (eligible_task,)).fetchall()
+        assert not hidden, "RLS exposed another user's task"
+        denied = conn.execute("SELECT public.reassign_queued_task_atomic(%s,%s)", (eligible_task,COWORKER_A)).fetchone()[0]
+        assert denied is False, "Authenticated non-owner reassigned task through RLS"
+        conn.execute("SELECT set_config('request.jwt.claim.sub',%s,false)", (USER,))
+        visible = conn.execute("SELECT id FROM public.tasks WHERE id=%s", (eligible_task,)).fetchall()
+        assert len(visible) == 1, "RLS hid the owner's task"
+    print("PASS: authenticated RLS isolates task ownership during reassignment")
+
 
 
 
