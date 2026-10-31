@@ -117,6 +117,23 @@ def main():
         claimed = conn.execute("SELECT id FROM public.claim_next_queued_run(%s,60)", ("claim-after-reassignment",)).fetchall()
         assert [str(row[0]) for row in claimed] == [blocked_run], "Worker did not recover after lock released"
     print("PASS: task reassignment lock excludes worker claim until released")
+    # Validate function EXECUTE grants independently of superuser test connections.
+    # This does not replace testing real Supabase RLS policies.
+    with connect() as conn:
+        expected = {
+            "public.claim_next_queued_run(text,integer)": {"anon": False, "authenticated": False, "service_role": True},
+            "public.claim_run_lease(uuid,text,integer)": {"anon": False, "authenticated": True, "service_role": True},
+            "public.reassign_queued_task_atomic(uuid,uuid)": {"anon": False, "authenticated": True, "service_role": False},
+        }
+        for signature, roles in expected.items():
+            for role, allowed in roles.items():
+                actual = conn.execute(
+                    "SELECT has_function_privilege(%s,%s,'EXECUTE')",
+                    (role,signature),
+                ).fetchone()[0]
+                assert actual is allowed, f"Unexpected EXECUTE privilege: {role} {signature}={actual}"
+    print("PASS: function EXECUTE grants match intended Supabase roles")
+
     # Execute the actual atomic reassignment function against synthetic rows.
     eligible_task, eligible_run = str(uuid.uuid4()), str(uuid.uuid4())
     with connect() as conn:
