@@ -88,6 +88,23 @@ def main():
         claimed = [str(row[0]) for rows in results for row in rows]
         assert claimed == [solo_run], f"Single-run claim collision in attempt {attempt + 1}: {len(claimed)}"
     print("PASS: five simultaneous single-run claim races yielded one winner each")
+    # Verify that a task row locked for reassignment is skipped by the worker.
+    blocked_task, blocked_run = str(uuid.uuid4()), str(uuid.uuid4())
+    with connect() as conn:
+        conn.execute("INSERT INTO public.tasks(id,status) VALUES (%s,'queued')", (blocked_task,))
+        conn.execute("INSERT INTO public.runs(id,task_id,status) VALUES (%s,%s,'queued')", (blocked_run,blocked_task))
+    with psycopg.connect(DSN, autocommit=False) as locker:
+        locker.execute("SELECT id FROM public.tasks WHERE id=%s FOR UPDATE", (blocked_task,))
+        with connect() as contender:
+            contender.execute("SET statement_timeout='3000ms'")
+            claimed = contender.execute("SELECT id FROM public.claim_next_queued_run(%s,60)", ("claim-during-reassignment",)).fetchall()
+            assert not claimed, "Worker claimed a task held by reassignment lock"
+        locker.commit()
+    with connect() as conn:
+        claimed = conn.execute("SELECT id FROM public.claim_next_queued_run(%s,60)", ("claim-after-reassignment",)).fetchall()
+        assert [str(row[0]) for row in claimed] == [blocked_run], "Worker did not recover after lock released"
+    print("PASS: task reassignment lock excludes worker claim until released")
+
 
 
 
