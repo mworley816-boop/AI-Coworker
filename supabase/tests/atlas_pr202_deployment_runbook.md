@@ -55,3 +55,5 @@ No migration has been applied by this runbook. Do not apply production migration
 - [x] Disposable PostgreSQL task-lock exclusion test passed in [GitHub Actions run 41214962458](https://github.com/mworley816-boop/AI-Coworker/actions/runs/41214962458): a parent task row held FOR UPDATE blocks worker claiming until released. Full atomic reassignment and authorization testing remain pending.
 
 - [x] Atomic task reassignment PostgreSQL smoke checks passed in [run 41224744776](https://github.com/mworley816-boop/AI-Coworker/actions/runs/41224744776): authorized queued-task reassignment, cross-user denial, and active-lease denial; 9/9 total checks passed. Production RLS/privilege verification and backup-integrity gate remain pending.
+
+- [x] PostgreSQL RPC privilege smoke checks passed in [run 41225145508](https://github.com/mworley816-boop/AI-Coworker/actions/runs/41225145508): 10/10 checks including anon/authenticated/service_role EXECUTE grants. Real Supabase RLS and backup verification remain required.
