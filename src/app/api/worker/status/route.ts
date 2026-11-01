@@ -28,5 +28,5 @@ export async function GET(request:Request){
   const stalled=await supabase.from("runs").select("id",{count:"exact",head:true}).eq("status","running").not("lease_expires_at","is",null).lte("lease_expires_at",now);
   const uncertain=await supabase.from("approvals").select("id",{count:"exact",head:true}).eq("status","uncertain");
   if(queued.error||running.error||waiting.error||expired.error||stalled.error||uncertain.error)return NextResponse.json({ok:false,reason:"Worker queue status could not be loaded"},{status:500});
-  return NextResponse.json({ok:true,atlasProjectMatch,queued:queued.count??0,running:running.count??0,waitingApproval:waiting.count??0,expiredLeases:expired.count??0,stalledRuns:stalled.count??0,uncertainApprovals:uncertain.count??0,time:new Date().toISOString()});
+  return NextResponse.json({ok:true,atlasProjectMatch,maintenanceMode:env.ATLAS_WORKER_MAINTENANCE_MODE==="true",queued:queued.count??0,running:running.count??0,waitingApproval:waiting.count??0,expiredLeases:expired.count??0,stalledRuns:stalled.count??0,uncertainApprovals:uncertain.count??0,time:new Date().toISOString()});
 }
