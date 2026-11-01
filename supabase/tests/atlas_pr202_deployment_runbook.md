@@ -97,3 +97,57 @@ No migration has been applied by this runbook. Do not apply production migration
 - [x] [GitHub Actions run 41286375896](https://github.com/mworley816-boop/AI-Coworker/actions/runs/41286375896) succeeded at commit `d7b318c576ef2ab6475f70f6efb080b26d0155af` on `build/mvp-foundation`: 21 checks passed (4 static permission checks, 4 reviewer grant checks, 2 reviewer workflow checks, 11 worker checks), zero failures.
 - [x] The isolated reviewer workflow using recreated hosted function definitions verified membership, decision validation, one-time review, and denial of anonymous calls after staged hardening.
 - [ ] Still required: fresh encrypted backup and restore, production-policy compatibility review, deployment-commit quality gates, explicit rollout approval. No production database migration or reviewer permission hardening has been applied by this workflow.
+
+
+## Current rollout status — 2026-11-01 (supersedes older unchecked historical notes)
+
+Historical sections above are retained as an audit trail. Do **not** interpret their dated
+reviewer-RPC warnings or unchecked CI items as current findings.
+
+### Verified since the earlier runbook entries
+- [x] Reviewer RPC hardening **applied** to hosted Atlas as migration
+  `20261101083809_harden_scentmarked_reviewer_rpc_permissions`. Anonymous
+  EXECUTE is revoked for the three reviewer functions; authenticated EXECUTE
+  remains granted. Signed-in reviewer queue smoke test loaded successfully.
+- [x] Hosted RLS policy definitions were inspected for `tasks`, `runs`,
+  `coworkers`, `run_steps`, and `approvals`. Ownership is enforced by
+  `auth.uid()` either directly or through the parent task; UPDATE checks
+  preserve ownership. This is a policy review, not a full hosted behavioral
+  test of the pending worker functions.
+- [x] Disposable PostgreSQL worker concurrency including simultaneous
+  manual/automatic claims, both sequential reassignment/claim orders, and
+  overlapping transactions passed at commit `94189d1bb094efc788315054726c6e10678d6b8d`:
+  [worker run 41291095424](https://github.com/mworley816-boop/AI-Coworker/actions/runs/41291095424).
+- [x] Verification, batch quality gate and Cloudflare **staging** checks
+  passed at that same commit:
+  [Verify 41291095364](https://github.com/mworley816-boop/AI-Coworker/actions/runs/41291095364),
+  [quality 41291095390](https://github.com/mworley816-boop/AI-Coworker/actions/runs/41291095390),
+  [staging 41291095367](https://github.com/mworley816-boop/AI-Coworker/actions/runs/41291095367).
+- [x] Encrypted backup [41287280140](https://github.com/mworley816-boop/Atlas-Private-Backups/actions/runs/41287280140)
+  and isolated restore [41287375376](https://github.com/mworley816-boop/Atlas-Private-Backups/actions/runs/41287375376)
+  completed successfully. This does not replace a fresh backup immediately
+  before production rollout.
+- [x] Hosted migration history was inspected: the four worker migrations
+  `20261027010000` through `20261027010003` were absent at the time
+  of inspection. Recheck immediately before deployment.
+
+### Remaining hard stops
+- [ ] Confirm rollback owner and maintenance window, and document a safe
+  worker-dispatch pause/resume procedure.
+- [ ] Confirm the four SQL files and live migration history still match the
+  expected order; review any changes since commit `94189d1`.
+- [ ] Perform a fresh encrypted backup and verify its restore/integrity
+  immediately before deployment. Backup artifacts have short retention.
+- [ ] Obtain **explicit user authorization** to deploy the four worker
+  migrations to Atlas production. Neither this runbook nor successful CI
+  grants deployment authorization.
+- [ ] After approval, deploy in the stated order and verify function
+  signatures, grants, authenticated ownership checks, worker dispatch,
+  reassignment behavior and lease health. Stop on any failed check.
+
+### Rollback cautions
+Pause new dispatch before rollback; do not delete the reassignment RPC
+while the deployed API depends on it. Restoring earlier function definitions
+must be followed by privilege checks, queue/lease reconciliation and
+re-running worker smoke tests. A database backup is a last-resort recovery
+asset, not a substitute for a function-level rollback plan.
