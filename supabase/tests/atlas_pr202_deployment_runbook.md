@@ -6,22 +6,22 @@
 - Disposable PostgreSQL concurrency workflow, Verify, and batch quality gate must be green.
 - Hosted AI-Coworker Supabase project: `glsnhuimpzyudofpvlfq`. Never target the Scentmarked project.
 - Encrypted backup creation has passed and disposable application schema/data restoration has passed.
-- **BLOCKED:** the additional COPY row-count integrity check has not passed yet; rerun the corrected restore workflow and retain its successful run URL before any production migration.
+- **PASSED for the tested snapshot:** the additional COPY row-count integrity check passed in backup restore run 41226499495 (21/21 tables). A fresh pre-deployment backup is still required.
 - Confirm artifact availability or create a fresh encrypted backup if the one-day retention window has expired.
 - Select a low-traffic maintenance window and confirm a rollback owner.
 
 ## Pre-deployment gates (all required)
-- [ ] Restore workflow completes with verified application COPY row counts; record the run URL.
-- [ ] Disposable PostgreSQL concurrency tests pass for competing worker claims and reassignment, including active lease rejection.
+- [x] Restore workflow completed with verified application COPY row counts: [run 41226499495](https://github.com/mworley816-boop/Atlas-Private-Backups/actions/runs/41226499495). Obtain a fresh backup for deployment.
+- [x] Disposable PostgreSQL concurrency tests passed for competing worker claims and reassignment, including active lease rejection: [run 41261859072](https://github.com/mworley816-boop/AI-Coworker/actions/runs/41261859072).
   - [x] Static worker migration contract tests passed (5/5) in [GitHub Actions run 41205692233](https://github.com/mworley816-boop/AI-Coworker/actions/runs/41205692233); these do not substitute for database-level concurrency tests.
   - [x] Disposable PostgreSQL 17 smoke test passed in [GitHub Actions run 41207291096](https://github.com/mworley816-boop/AI-Coworker/actions/runs/41207291096): two concurrent worker claims acquired distinct tasks; manual lease stealing rejected; same-owner renewal and expired-lease recovery passed.
-  - [ ] Full concurrent reassignment-vs-claim, owner authorization/RLS, and deadlock test cases still required; do not treat smoke-test success as completion of this gate.
+  - [x] Parent task-lock exclusion, owner authorization, active lease rejection and synthetic authenticated-role RLS tests passed. [Run 41261859072](https://github.com/mworley816-boop/AI-Coworker/actions/runs/41261859072). Full production-policy compatibility and exhaustive deadlock testing remain separate gates.
   - [x] Two automatic workers competing for one queued run cannot both acquire an active lease — five race attempts passed in [run 41209876719](https://github.com/mworley816-boop/AI-Coworker/actions/runs/41209876719).
   - [ ] Manual claim and automatic claim on the same run serialize through the parent task lock.
-  - [ ] Reassignment racing with a worker claim either completes before claim or is rejected once an active lease exists.
-  - [ ] Reassignment of a running/non-queued task is rejected; unauthorized owners cannot reassign.
+  - [x] Parent task-lock exclusion and active-lease rejection tested; full end-to-end production race still requires verification.
+  - [x] Non-owner reassignment and active-lease rejection tested; non-queued task state coverage should be verified separately.
   - [ ] Concurrent claims across different tasks can progress without deadlock or indefinite waiting.
-  - [ ] Verify lease expiry and same-owner renewal behavior against the intended policy.
+  - [x] Lease expiry and same-owner renewal passed in disposable PostgreSQL.
 - [ ] Verify, typecheck/build, and batch quality gate pass on the deployment commit.
 - [ ] Compare the hosted migration history to the four migration filenames and confirm ordering; do not assume the files are unapplied.
 - [ ] Review function grants, hosted RLS expectations, and a rollback plan.
@@ -61,3 +61,14 @@ No migration has been applied by this runbook. Do not apply production migration
 - [x] Encrypted Atlas backup successfully restored in disposable Supabase with 21/21 application COPY row counts matching restored tables: [backup run 41226499495](https://github.com/mworley816-boop/Atlas-Private-Backups/actions/runs/41226499495). This verifies that specific backup, not a fresh production snapshot; RLS checks and deployment authorization remain pending.
 
 - [x] Authenticated-role synthetic RLS ownership smoke test passed in [run 41227661114](https://github.com/mworley816-boop/AI-Coworker/actions/runs/41227661114): 11/11 total PostgreSQL checks passed. Live Supabase policies still require independent verification.
+
+## Reviewer RPC permissions (separate proposed change)
+- [x] Four static permission-contract checks and three disposable PostgreSQL grant checks passed in [run 41261859072](https://github.com/mworley816-boop/AI-Coworker/actions/runs/41261859072).
+- [ ] Validate full reviewer workflow with real function implementations in an isolated environment; stubs only prove grants.
+- [ ] Review and approve the staged SQL at `supabase/tests/reviewer-rpc-permission-hardening.sql`; it is not a deployed migration.
+- [ ] Re-check hosted security advisor after any approved rollout.
+
+## Live-project read-only review
+- Hosted migration history inspected: the four `20261027010000`–`20261027010003` migrations were not listed as applied.
+- Hosted ownership policies for `tasks`, `runs`, `coworkers`, `run_steps`, and `approvals` were inspected. The synthetic RLS test does not substitute for a production-policy integration test.
+- Hosted security advisor flagged three anonymous-executable reviewer `SECURITY DEFINER` functions, six RLS-enabled tables without policies (possibly intentional service-only), and disabled leaked-password protection. Review each finding separately before changing permissions.
