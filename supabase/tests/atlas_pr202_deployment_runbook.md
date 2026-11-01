@@ -85,3 +85,10 @@ No migration has been applied by this runbook. Do not apply production migration
 - [x] Listing requires reviewer membership and caps its result count at 50; review mutation requires reviewer membership, an allowed decision, a rationale of 10–2000 characters, and a pending proposal.
 - [ ] Isolated integration test must use the actual function definitions, reviewer and non-reviewer identities, and appropriate synthetic tables before applying the staged permission SQL. Catalog-grant tests using placeholder functions do not prove this behavior.
 - [ ] Confirm no application flow relies on anonymous invocation of `is_scentmarked_reviewer()`; anonymous calls will be denied after hardening instead of returning false.
+
+## Hosted reviewer RPC readiness query — 2026-10-31
+- [x] Ran `supabase/tests/atlas_reviewer_rpc_predeploy_checks.sql` equivalent read-only query against hosted Atlas project `glsnhuimpzyudofpvlfq`.
+- [x] All three expected function signatures exist, use `SECURITY DEFINER`, and contain `auth.uid()` plus `scentmarked_reviewers` references.
+- [x] Authenticated role has EXECUTE on all three.
+- [ ] Anonymous role still has EXECUTE on all three. Permission hardening remains staged only, not deployed.
+- [ ] Function text inspection is not a substitute for integration testing with real reviewer/nonreviewer identities.
