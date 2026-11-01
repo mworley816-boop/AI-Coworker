@@ -78,3 +78,10 @@ No migration has been applied by this runbook. Do not apply production migration
 - [x] `reassign_queued_task_atomic` is absent; four `20261027010000`–`20261027010003` worker migrations are not in hosted migration history.
 - [ ] All three privileged reviewer RPCs still permit anon EXECUTE in hosted Atlas; staged permission hardening remains unapplied. Validate complete reviewer workflow before production change.
 - [ ] Obtain fresh encrypted predeployment backup and verify restore of that fresh snapshot.
+
+## Reviewer RPC implementation inspection — 2026-10-31
+- [x] Read-only `pg_get_functiondef` inspection of all three hosted reviewer functions completed.
+- [x] All three are `SECURITY DEFINER` with an explicit empty `search_path`; reviewer authorization checks use `auth.uid()` and `public.scentmarked_reviewers`.
+- [x] Listing requires reviewer membership and caps its result count at 50; review mutation requires reviewer membership, an allowed decision, a rationale of 10–2000 characters, and a pending proposal.
+- [ ] Isolated integration test must use the actual function definitions, reviewer and non-reviewer identities, and appropriate synthetic tables before applying the staged permission SQL. Catalog-grant tests using placeholder functions do not prove this behavior.
+- [ ] Confirm no application flow relies on anonymous invocation of `is_scentmarked_reviewer()`; anonymous calls will be denied after hardening instead of returning false.
