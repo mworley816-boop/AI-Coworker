@@ -1,0 +1,40 @@
+name: Atlas worker dispatch audit
+on:
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Inspect worker dispatch runs without changing schedules
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          for workflow in atlas-background-worker.yml atlas-staging-worker-scheduler.yml; do
+            data=$(mktemp)
+            trap 'rm -f "$data"' EXIT
+            curl --fail --silent --show-error --connect-timeout 10 --max-time 30 \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/$REPOSITORY/actions/workflows/$workflow/runs?per_page=20" > "$data"
+            jq -e '.workflow_runs | type == "array"' "$data" >/dev/null
+            active=$(jq '[.workflow_runs[] | select(.status != "completed")] | length' "$data")
+            latest=$(jq -r '.workflow_runs[0] | if . == null then "none" else (.status + "/" + (.conclusion // "pending")) end' "$data")
+            {
+              echo "### $workflow"
+              echo "- Recent run state: $latest"
+              echo "- Active runs among latest 20: $active"
+              echo "- Audit scope: GitHub Actions only; other dispatchers not checked"
+              echo ""
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "$workflow active_runs=$active"
+            rm -f "$data"
+          done
+          echo "**Read-only snapshot. Not proof of a complete worker drain or migration authorization.**" >> "$GITHUB_STEP_SUMMARY"
