@@ -15,7 +15,13 @@ outsider = str(uuid.uuid4())
 proposal = str(uuid.uuid4())
 with psycopg.connect(dsn, autocommit=True) as db:
     db.execute("create schema if not exists auth")
-    # Previous permission smoke test installs boolean-returning stub functions.\n    # Drop these disposable stubs before installing the real return signatures.\n    for signature in ("public.is_scentmarked_reviewer()",\n                      "public.list_pending_scentmarked_proposals(integer)",\n                      "public.review_scentmarked_proposal(uuid,text,text)"):\n        db.execute(f"drop function if exists {signature} cascade")\n    db.execute("""create or replace function auth.uid() returns uuid language sql stable
+    # Previous permission smoke test installs boolean-returning stub functions.
+    # Drop these disposable stubs before installing the real return signatures.
+    for signature in ("public.is_scentmarked_reviewer()",
+                      "public.list_pending_scentmarked_proposals(integer)",
+                      "public.review_scentmarked_proposal(uuid,text,text)"):
+        db.execute(f"drop function if exists {signature} cascade")
+    db.execute("""create or replace function auth.uid() returns uuid language sql stable
         as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$""")
     db.execute("create table public.scentmarked_reviewers(user_id uuid primary key)")
     db.execute("""create table public.scentmarked_proposals(
