@@ -51,5 +51,7 @@ jobs:
           PY
       - name: Verify reviewer RPC permission hardening SQL
         run: node --test supabase/tests/reviewer-rpc-permission-hardening.test.mjs
+      - name: Verify reviewer RPC privileges in disposable PostgreSQL
+        run: python supabase/tests/reviewer-rpc-permission-postgres.py
       - name: Run actual concurrent PostgreSQL claims
         run: python supabase/tests/worker-claim-postgres-concurrency.py
