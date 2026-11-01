@@ -220,3 +220,26 @@ recovery point; do not blindly restore over live data.
 - Migration versions applied:
 - Postdeployment smoke test and monitoring results:
 - Rollback required? / reason:
+
+
+## Worker-dispatch control audit — 2026-11-01
+
+**Observed in repository (not proof of live scheduler configuration):**
+- `.github/workflows/atlas-background-worker.yml` schedules every 15
+  minutes and POSTs to the hard-coded **staging** worker endpoint.
+- `.github/workflows/atlas-staging-worker-scheduler.yml` also schedules
+  every 15 minutes and POSTs to a URL from
+  `ATLAS_STAGING_WORKER_URL`. The configured URL has not been verified.
+- Both workflows permit manual dispatch. A pause must cover **both**
+  scheduled triggers, any in-flight GitHub runs, manual invocations, and
+  any other configured Cloudflare/external schedulers.
+- `docs/background-worker.md` says no production scheduler is configured,
+  but this documentation may be stale. Confirm actual production dispatch
+  topology before a maintenance window.
+
+**Hard stop:** A verified, reversible pause/resume procedure has **not**
+been established. Do not assume that disabling one workflow pauses all
+workers. Do not alter scheduler settings or credentials without a separate
+operational review and approval. Confirm which endpoints share the hosted
+Atlas database and who owns each dispatch source. Record observed active
+runs and lease expiry before changing dispatch state.
