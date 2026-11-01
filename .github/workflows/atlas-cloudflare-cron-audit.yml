@@ -1,0 +1,45 @@
+name: Atlas Cloudflare cron audit
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Inspect Cloudflare cron triggers (read only)
+        env:
+          CF_TOKEN: ${{ secrets.SCENTMARKED_CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          if [ -z "$CF_TOKEN" ] || [ -z "$CF_ACCOUNT" ]; then
+            echo "::error::Cloudflare API token or account ID is unavailable; no assumptions about cron triggers."
+            exit 1
+          fi
+          response=$(mktemp)
+          trap 'rm -f "$response"' EXIT
+          code=$(curl --silent --show-error --connect-timeout 10 --max-time 30 \
+            --output "$response" --write-out '%{http_code}' \
+            --header "Authorization: Bearer $CF_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT/workers/scripts/ai-coworker-staging/schedules")
+          if [ "$code" != "200" ]; then
+            echo "::error::Cloudflare schedule inspection returned HTTP $code. Verify token permissions and account configuration."
+            exit 1
+          fi
+          jq -e '.success == true and (.result | type == "array")' "$response" >/dev/null || {
+            echo "::error::Cloudflare schedule inspection did not return a valid result."
+            exit 1
+          }
+          count=$(jq '.result | length' "$response")
+          {
+            echo "### Cloudflare Cron Trigger audit"
+            echo "- Worker: ai-coworker-staging"
+            echo "- Cron trigger count: **$count**"
+            echo "- Read-only inspection; no schedules or secrets modified"
+            echo "- Other Cloudflare services, HTTP callers and external schedulers are outside this check"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "Cloudflare cron trigger count: $count"
