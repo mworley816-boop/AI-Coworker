@@ -26,7 +26,11 @@ The endpoint returns the worker id, batch size, duration, number of processed ru
 
 ## Deployment
 
-Use a trusted scheduler/runtime to invoke the worker endpoint on a recurring interval. Cloudflare deployment is intentionally paused, so no production scheduler is configured yet.
+The deployed Cloudflare staging worker currently connects to the hosted production Atlas Supabase project. The primary GitHub Actions background-worker schedule on the repository default branch invokes that endpoint; the secondary staging schedule is gated by a GitHub variable and has recently skipped. Check both live workflow definitions and any Cloudflare dashboard Cron Triggers before maintenance. Do not assume the staging label indicates database isolation.
+
+## Maintenance admission guard
+
+Set `ATLAS_WORKER_MAINTENANCE_MODE=true` in the deployed worker runtime only during a separately approved maintenance window. Authenticated `POST /api/worker/run` requests then return `paused:true` without starting recovery or claiming a new run. The flag is off by default. Authenticated `GET /api/worker/status` reports `maintenanceMode`, queue and lease counts. This guard does not stop in-flight requests or other clients of the database; drain active work and audit all dispatch sources before migrations. Do not enable the flag as part of a documentation-only change.
 
 ## Safety and recovery
 
