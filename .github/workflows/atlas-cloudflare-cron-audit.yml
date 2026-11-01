@@ -28,14 +28,14 @@ jobs:
             "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT/workers/scripts/ai-coworker-staging/schedules")
           if [ "$code" != "200" ]; then
             safe_codes=$(jq -r '[.errors[]?.code | tostring] | join(",")' "$response" 2>/dev/null || true)
-            echo "::error::Cloudflare schedule inspection returned HTTP $code (error codes: ${safe_codes:-unknown}). Check account ID, endpoint, and token permissions."
+            echo "::error::Cloudflare schedule inspection returned HTTP $code (error codes: ${safe_codes:-unknown}). Cloudflare code 9106 indicates an authentication failure; verify account scope and token permissions."
             exit 1
           fi
-          jq -e '.success == true and (.result | type == "array")' "$response" >/dev/null || {
+          jq -e '.success == true and (.result.schedules | type == "array")' "$response" >/dev/null || {
             echo "::error::Cloudflare schedule inspection did not return a valid result."
             exit 1
           }
-          count=$(jq '.result | length' "$response")
+          count=$(jq '.result.schedules | length' "$response")
           {
             echo "### Cloudflare Cron Trigger audit"
             echo "- Worker: ai-coworker-staging"
