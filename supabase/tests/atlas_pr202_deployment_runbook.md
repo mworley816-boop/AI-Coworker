@@ -243,3 +243,37 @@ workers. Do not alter scheduler settings or credentials without a separate
 operational review and approval. Confirm which endpoints share the hosted
 Atlas database and who owns each dispatch source. Record observed active
 runs and lease expiry before changing dispatch state.
+
+
+## Scheduler pause/resume dry-run checklist — not executed
+
+**Purpose:** make the maintenance pause reversible without losing queued work.
+The two GitHub schedules are independent and must be assessed separately.
+
+1. In GitHub Actions, inspect the current state and recent runs for
+   **Atlas background worker** and **Atlas Staging Worker Scheduler**.
+   Record whether each is enabled, its latest dispatch time, and any
+   in-progress runs. Check for other worker dispatch sources in Cloudflare
+   or external cron systems.
+2. Resolve both target URLs to their actual deployed environments and
+   confirm whether either uses the Atlas hosted production Supabase
+   project. Do not infer database identity from the word *staging*.
+3. Before pausing, record queue depth, active leases, lease expiry
+   timestamps, and pending approvals. Establish a maximum wait based on
+   observed lease durations; never cancel an in-flight action solely to
+   speed up deployment.
+4. During an **approved** maintenance window, disable scheduling at each
+   confirmed dispatch source using its native reversible control.
+   Prevent manual dispatch through operator coordination/access control.
+   Verify that no new worker invocations occur while waiting for
+   in-flight work to settle.
+5. If any scheduler cannot be paused safely, abort the rollout and
+   restore the previous scheduling state. Do not rotate worker secrets
+   as an improvised pause mechanism.
+6. After migration and smoke checks, re-enable exactly the sources that
+   were previously enabled. Observe a normal batch, lease health and
+   queue movement. Record before/after scheduler states and timestamps.
+
+**Dry-run result:** not performed; live scheduler enablement, endpoint
+database mappings, and non-GitHub dispatchers are not yet verified.
+No scheduling change is authorized by this checklist.
