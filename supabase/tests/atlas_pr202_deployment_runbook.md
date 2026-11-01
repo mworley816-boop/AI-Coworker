@@ -59,3 +59,5 @@ No migration has been applied by this runbook. Do not apply production migration
 - [x] PostgreSQL RPC privilege smoke checks passed in [run 41225145508](https://github.com/mworley816-boop/AI-Coworker/actions/runs/41225145508): 10/10 checks including anon/authenticated/service_role EXECUTE grants. Real Supabase RLS and backup verification remain required.
 
 - [x] Encrypted Atlas backup successfully restored in disposable Supabase with 21/21 application COPY row counts matching restored tables: [backup run 41226499495](https://github.com/mworley816-boop/Atlas-Private-Backups/actions/runs/41226499495). This verifies that specific backup, not a fresh production snapshot; RLS checks and deployment authorization remain pending.
+
+- [x] Authenticated-role synthetic RLS ownership smoke test passed in [run 41227661114](https://github.com/mworley816-boop/AI-Coworker/actions/runs/41227661114): 11/11 total PostgreSQL checks passed. Live Supabase policies still require independent verification.
