@@ -151,3 +151,72 @@ while the deployed API depends on it. Restoring earlier function definitions
 must be followed by privilege checks, queue/lease reconciliation and
 re-running worker smoke tests. A database backup is a last-resort recovery
 asset, not a substitute for a function-level rollback plan.
+
+
+## Production rollout procedure — operator checklist (NOT authorization)
+
+**Scope:** Atlas Supabase project `glsnhuimpzyudofpvlfq` only. Do not
+apply these migrations to the Scentmarked database. This procedure is
+prepared for a separately approved maintenance window; it must not be
+executed automatically by CI.
+
+### Before the maintenance window
+1. Name the rollout operator and rollback owner. Agree on a low-traffic
+   window, expected duration, communication channel, and stop criteria.
+2. Capture current `build/mvp-foundation` commit and verify CI for that
+   exact commit. Re-read all four SQL migration files and compare their
+   checksums against the approved review.
+3. Re-query hosted `supabase_migrations.schema_migrations` and current
+   `pg_proc` signatures/grants. Stop if any of the four migrations is
+   already recorded or any function definition differs unexpectedly.
+4. Verify an operator-tested way to pause **new** worker dispatch while
+   allowing in-flight leases to complete. Record queued/running task
+   counts and active leases; do not interrupt active work blindly.
+5. Create a **fresh encrypted backup** and run the isolated restore with
+   application table row-count verification. Confirm the artifact remains
+   accessible for the entire rollback window.
+6. Obtain explicit user approval naming the Atlas project and the four
+   migrations. No approval is implied by a request to continue development.
+
+### Approved maintenance window — stop on first failed gate
+1. Announce maintenance and pause new worker dispatch using the verified
+   operational control. Wait for or account for active leases.
+2. Capture a final baseline: task/run statuses, active leases, function
+   definitions and grants, and applied migration versions.
+3. Apply in **strict order**, through the normal tracked migration process:
+   - `20261027010000_atomic_task_reassignment.sql`
+   - `20261027010001_worker_parent_task_claim_lock.sql`
+   - `20261027010002_manual_claim_parent_task_lock.sql`
+   - `20261027010003_worker_reassignment_lease_guard.sql`
+   Re-check the applied version and function signature after each step.
+4. Validate `anon`, `authenticated`, and `service_role` EXECUTE
+   permissions; reject anonymous reassignment and unauthorized claims.
+   Verify authenticated owner/non-owner reassignment on isolated
+   disposable fixtures, including active lease denial.
+5. Exercise a disposable queued run through manual claim, worker claim,
+   and lease expiry/renewal paths. Verify no duplicate active lease,
+   no stuck queue, and expected task/coworker relationships.
+6. Resume dispatch gradually and observe logs, errors, lease expiry,
+   queue depth, and unexpected changes. Record results and completion.
+
+### Stop / rollback decision
+If a migration fails, privileges drift, claims double-acquire, leases
+become stuck, or queue integrity changes unexpectedly: **keep dispatch
+paused**, notify the rollback owner, and assess active transactions.
+Restore the previous worker-claim functions from the versioned SQL
+sources identified in the rollback section; reapply their exact grants.
+Preserve the reassignment RPC while the API depends on it. Verify
+function behavior and queue consistency before resuming dispatch.
+Escalate to backup restoration only after evaluating data loss and
+recovery point; do not blindly restore over live data.
+
+### Record of execution (leave blank until separately approved)
+- Operator / rollback owner:
+- Maintenance window (with timezone):
+- Approved migration commit:
+- Explicit approval reference:
+- Fresh backup run / restore run:
+- Baseline queue and active lease counts:
+- Migration versions applied:
+- Postdeployment smoke test and monitoring results:
+- Rollback required? / reason:
