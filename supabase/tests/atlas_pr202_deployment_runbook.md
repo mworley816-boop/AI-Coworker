@@ -277,3 +277,29 @@ The two GitHub schedules are independent and must be assessed separately.
 **Dry-run result:** not performed; live scheduler enablement, endpoint
 database mappings, and non-GitHub dispatchers are not yet verified.
 No scheduling change is authorized by this checklist.
+
+
+## Staging endpoint → database mapping audit — 2026-11-01
+
+- The active `Atlas background worker` scheduled run
+  [41289700976](https://github.com/mworley816-boop/AI-Coworker/actions/runs/41289700976)
+  invoked `https://ai-coworker-staging.m-worley816.workers.dev/api/worker/run`;
+  its logs show HTTP 200, `ok:true`, `processed:0`, and `idle:true`.
+  This proves endpoint responsiveness, **not** database identity.
+- `wrangler.jsonc` names the deployed Worker `ai-coworker-staging`.
+  It does not contain a Supabase project URL.
+- `.github/workflows/deploy-cloudflare-staging.yml` passes
+  `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` from
+  GitHub Actions secrets to `npm run deploy`. Those secret values
+  cannot be inferred from the repository and must not be printed.
+- `src/lib/runtime-env.ts` resolves runtime bindings from the
+  Cloudflare environment, falling back to `process.env`.
+- Therefore, the actual staging Worker → Supabase project mapping
+  **remains unverified**. Before production rollout, an authorized
+  operator should compare only the nonsecret Supabase project ref
+  embedded in the configured URL with the Atlas project
+  `glsnhuimpzyudofpvlfq`, using a protected diagnostic or secure
+  configuration inspection. Never log service-role credentials.
+- The other scheduler's configured `ATLAS_STAGING_WORKER_URL` must
+  likewise be checked without disclosing its worker bearer token.
+  The word `staging` alone does not guarantee database isolation.
