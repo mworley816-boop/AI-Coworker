@@ -300,5 +300,90 @@ def main():
     print("PASS: claim before reassignment preserves coworker assignment")
 
 
+    # Real overlapping transactions: the parent task lock must serialize
+    # reassignment with a manual worker claim across separate connections.
+    for first in ("reassign", "claim"):
+        task_id, run_id = str(uuid.uuid4()), str(uuid.uuid4())
+        with connect() as conn:
+            conn.execute(
+                "INSERT INTO public.tasks(id,status,user_id,coworker_id) VALUES (%s,'queued',%s,%s)",
+                (task_id,USER,COWORKER_A),
+            )
+            conn.execute(
+                "INSERT INTO public.runs(id,task_id,status) VALUES (%s,%s,'queued')",
+                (run_id,task_id),
+            )
+
+        locked = threading.Event()
+        release = threading.Event()
+
+        def holding_transaction():
+            with psycopg.connect(DSN, autocommit=False) as conn:
+                conn.execute("SET statement_timeout='8000ms'")
+                conn.execute("SELECT set_config('request.jwt.claim.sub',%s,false)", (USER,))
+                conn.execute("SELECT id FROM public.tasks WHERE id=%s FOR UPDATE", (task_id,))
+                locked.set()
+                if not release.wait(timeout=10):
+                    raise AssertionError("Timed out waiting to release parent task lock")
+                if first == "reassign":
+                    result = conn.execute(
+                        "SELECT public.reassign_queued_task_atomic(%s,%s)",
+                        (task_id,COWORKER_B),
+                    ).fetchone()[0]
+                else:
+                    result = conn.execute(
+                        "SELECT id FROM public.claim_run_lease(%s,%s,60)",
+                        (run_id,"holding-worker"),
+                    ).fetchall()
+                conn.commit()
+                return result
+
+        def competing_transaction():
+            with connect() as conn:
+                conn.execute("SET statement_timeout='8000ms'")
+                conn.execute("SELECT set_config('request.jwt.claim.sub',%s,false)", (USER,))
+                if first == "reassign":
+                    return conn.execute(
+                        "SELECT id FROM public.claim_run_lease(%s,%s,60)",
+                        (run_id,"competing-worker"),
+                    ).fetchall()
+                return conn.execute(
+                    "SELECT public.reassign_queued_task_atomic(%s,%s)",
+                    (task_id,COWORKER_B),
+                ).fetchone()[0]
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
+            holder = pool.submit(holding_transaction)
+            assert locked.wait(timeout=10), "Parent task lock was not acquired"
+            contender = pool.submit(competing_transaction)
+            release.set()
+            held_result = holder.result(timeout=15)
+            competing_result = contender.result(timeout=15)
+
+        with connect() as conn:
+            assignment, lease_owner = conn.execute(
+                """SELECT t.coworker_id,r.lease_owner FROM public.tasks t
+                   JOIN public.runs r ON r.task_id=t.id WHERE t.id=%s""",
+                (task_id,),
+            ).fetchone()
+        if first == "reassign":
+            assert held_result is True, "Locked reassignment did not commit"
+            assert [str(row[0]) for row in competing_result] == [run_id], (
+                "Worker claim after committed reassignment failed"
+            )
+            assert str(assignment) == COWORKER_B
+            assert lease_owner == "competing-worker"
+        else:
+            assert [str(row[0]) for row in held_result] == [run_id], (
+                "Locked worker claim did not commit"
+            )
+            assert competing_result is False, (
+                "Concurrent reassignment bypassed the committed active lease"
+            )
+            assert str(assignment) == COWORKER_A
+            assert lease_owner == "holding-worker"
+    print("PASS: overlapping reassignment/claim transactions serialize in both orders")
+
+
 if __name__ == "__main__":
     main()
