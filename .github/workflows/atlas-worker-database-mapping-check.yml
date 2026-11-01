@@ -1,0 +1,40 @@
+name: Atlas worker database mapping check
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-mapping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Verify staging worker database mapping (read only)
+        env:
+          WORKER_SECRET: ${{ secrets.ATLAS_WORKER_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "$WORKER_SECRET" ]; then
+            echo "::error::ATLAS_WORKER_SECRET is not configured."
+            exit 1
+          fi
+          response_file=$(mktemp)
+          trap 'rm -f "$response_file"' EXIT
+          status=$(curl --silent --show-error --connect-timeout 10 --max-time 30 \
+            --output "$response_file" --write-out '%{http_code}' \
+            --header "Authorization: Bearer $WORKER_SECRET" \
+            "https://ai-coworker-staging.m-worley816.workers.dev/api/worker/status")
+          if [ "$status" != "200" ]; then
+            echo "::error::Worker status endpoint returned HTTP $status; check auth and deployment."
+            exit 1
+          fi
+          jq -e '.ok == true and (.atlasProjectMatch | type == "boolean")' "$response_file" >/dev/null || {
+            echo "::error::Authenticated worker status lacks the expected mapping result."
+            exit 1
+          }
+          match=$(jq -r '.atlasProjectMatch' "$response_file")
+          echo "### Staging worker database mapping" >> "$GITHUB_STEP_SUMMARY"
+          echo "Matches hosted Atlas project: **$match**" >> "$GITHUB_STEP_SUMMARY"
+          echo "Read-only check; no queued tasks processed or configuration changed." >> "$GITHUB_STEP_SUMMARY"
+          echo "atlasProjectMatch=$match"
