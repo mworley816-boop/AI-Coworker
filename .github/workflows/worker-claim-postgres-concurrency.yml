@@ -2,6 +2,13 @@ name: Atlas PostgreSQL Worker Concurrency
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - build/mvp-foundation
+    paths:
+      - "supabase/tests/worker-claim-postgres-concurrency.py"
+      - "supabase/migrations/2026102701000*.sql"
+      - ".github/workflows/worker-claim-postgres-concurrency.yml"
   pull_request:
     paths:
       - "supabase/tests/worker-claim-postgres-concurrency.py"
