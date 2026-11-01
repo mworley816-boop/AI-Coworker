@@ -26,5 +26,24 @@ with psycopg.connect(dsn, autocommit=True) as conn:
         signature = f"public.{name}({args})"
         assert not conn.execute("select has_function_privilege('anon', %s, 'EXECUTE')", (signature,)).fetchone()[0], signature
         assert conn.execute("select has_function_privilege('authenticated', %s, 'EXECUTE')", (signature,)).fetchone()[0], signature
+    # Exercise SQL execution under each role, not just has_function_privilege.
+    calls = [
+        "select public.is_scentmarked_reviewer()",
+        "select public.list_pending_scentmarked_proposals(30)",
+        "select public.review_scentmarked_proposal(null::uuid, 'REJECTED', 'test rationale')",
+    ]
+    for role, allowed in (("anon", False), ("authenticated", True)):
+        for call in calls:
+            try:
+                with conn.transaction():
+                    conn.execute(f"set local role {role}")
+                    conn.execute(call).fetchone()
+            except psycopg.errors.InsufficientPrivilege:
+                if allowed:
+                    raise AssertionError(f"{role} unexpectedly denied: {call}")
+            else:
+                if not allowed:
+                    raise AssertionError(f"{role} unexpectedly executed: {call}")
+    print("PASS: SQL calls denied for anon and allowed for authenticated")
     print("PASS: anon EXECUTE denied on all three reviewer RPCs")
     print("PASS: authenticated EXECUTE retained on all three reviewer RPCs")
