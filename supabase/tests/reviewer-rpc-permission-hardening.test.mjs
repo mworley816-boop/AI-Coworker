@@ -15,6 +15,6 @@ for (const signature of functions) {
   });
 }
 test("hardening SQL is transaction-wrapped and avoids function replacement", () => {
-  assert.match(sql, /begin;[\\s\\S]*commit;/i);
+  assert.match(sql, /begin;[\s\S]*commit;/i);
   assert.doesNotMatch(sql, /create\\s+or\\s+replace|drop\\s+function/i);
 });
