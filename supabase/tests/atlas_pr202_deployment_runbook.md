@@ -313,3 +313,14 @@ No scheduling change is authorized by this checklist.
 - This flag is **off by default** and has **not been enabled**. The flag is an admission guard, **not a database-wide lock**. All dispatch sources must be checked, and in-flight worker requests must be allowed to drain. Never infer safe drain merely from a zero `running` count: inspect leases and dispatch logs as well.
 - Added unit tests for default-off and explicit-on behavior in `src/lib/maintenance/worker-maintenance.test.ts`; CI must pass at the final commit before relying on the guard. No live paused-mode test has been performed.
 - The staging worker shares production data. Do not activate maintenance mode or apply any of the four worker migrations without separately approved maintenance operations.
+
+
+## Default-branch scheduler audit (November 1, 2026)
+
+The repository default branch is `main`, so GitHub scheduled workflows must be assessed using `main`, not only the development branch.
+
+- The primary `Atlas background worker` workflow on `main` has a recurring schedule and manual dispatch. Scheduled run 41321319218 completed successfully. Treat it as an active dispatch source.
+- The second `Atlas Staging Worker Scheduler` workflow on `main` has a recurring schedule, but its job checks `ATLAS_STAGING_SCHEDULE_ENABLED` before running. Scheduled run 41325326512 was skipped. Do not assume future runs will remain skipped if configuration changes.
+- The development-branch workflow definitions are not identical to `main`. Before maintenance, verify the exact live workflow definitions and the Cloudflare dispatch sources.
+- The worker admission guard is default-off. A zero-running-run snapshot is not evidence that all in-flight HTTP worker requests have drained.
+- No scheduler, database migration, or Cloudflare maintenance setting was changed in this audit.
