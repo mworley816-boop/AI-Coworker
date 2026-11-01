@@ -1,0 +1,45 @@
+name: Atlas worker maintenance readiness
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Inspect authenticated worker status (read only)
+        env:
+          WORKER_SECRET: ${{ secrets.ATLAS_WORKER_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "$WORKER_SECRET" ]; then
+            echo "::error::ATLAS_WORKER_SECRET is missing"
+            exit 1
+          fi
+          response=$(mktemp)
+          trap 'rm -f "$response"' EXIT
+          code=$(curl --silent --show-error --connect-timeout 10 --max-time 30 \
+            --output "$response" --write-out '%{http_code}' \
+            --header "Authorization: Bearer $WORKER_SECRET" \
+            "https://ai-coworker-staging.m-worley816.workers.dev/api/worker/status")
+          if [ "$code" != "200" ]; then
+            echo "::error::Status endpoint returned HTTP $code"
+            exit 1
+          fi
+          jq -e '.ok == true and .atlasProjectMatch == true and (.maintenanceMode | type == "boolean") and ([.queued,.running,.expiredLeases,.stalledRuns,.waitingApproval,.uncertainApprovals] | all(.[]; type == "number"))' "$response" >/dev/null || {
+            echo "::error::Missing status fields or unexpected database mapping"
+            exit 1
+          }
+          {
+            echo "### Atlas worker maintenance readiness (read only)"
+            echo ""
+            echo "| Signal | Observed |"
+            echo "|---|---|"
+            jq -r '"| Maintenance enabled | " + (.maintenanceMode|tostring) + " |", "| Queued runs | " + (.queued|tostring) + " |", "| Running runs | " + (.running|tostring) + " |", "| Expired leases | " + (.expiredLeases|tostring) + " |", "| Stalled runs | " + (.stalledRuns|tostring) + " |", "| Waiting approval | " + (.waitingApproval|tostring) + " |", "| Uncertain approvals | " + (.uncertainApprovals|tostring) + " |"' "$response"
+            echo ""
+            echo "**Not a migration authorization or proof of drained workers.** Verify all schedulers and in-flight dispatches separately."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "Read-only readiness snapshot captured; inspect the job summary."
