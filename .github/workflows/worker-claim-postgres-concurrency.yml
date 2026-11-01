@@ -6,6 +6,7 @@ on:
     paths:
       - "supabase/tests/worker-claim-postgres-concurrency.py"
       - "supabase/tests/reviewer-rpc-permission-hardening.*"
+      - "supabase/tests/reviewer-rpc-real-function-postgres.py"
       - "supabase/migrations/2026102701000*.sql"
       - ".github/workflows/worker-claim-postgres-concurrency.yml"
 
@@ -53,5 +54,7 @@ jobs:
         run: node --test supabase/tests/reviewer-rpc-permission-hardening.test.mjs
       - name: Verify reviewer RPC privileges in disposable PostgreSQL
         run: python supabase/tests/reviewer-rpc-permission-postgres.py
+      - name: Verify reviewer workflow with actual hosted function bodies
+        run: python supabase/tests/reviewer-rpc-real-function-postgres.py
       - name: Run actual concurrent PostgreSQL claims
         run: python supabase/tests/worker-claim-postgres-concurrency.py
