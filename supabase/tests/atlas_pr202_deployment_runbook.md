@@ -92,3 +92,8 @@ No migration has been applied by this runbook. Do not apply production migration
 - [x] Authenticated role has EXECUTE on all three.
 - [ ] Anonymous role still has EXECUTE on all three. Permission hardening remains staged only, not deployed.
 - [ ] Function text inspection is not a substitute for integration testing with real reviewer/nonreviewer identities.
+
+## Combined reviewer and concurrency CI — 2026-11-01
+- [x] [GitHub Actions run 41286375896](https://github.com/mworley816-boop/AI-Coworker/actions/runs/41286375896) succeeded at commit `d7b318c576ef2ab6475f70f6efb080b26d0155af` on `build/mvp-foundation`: 21 checks passed (4 static permission checks, 4 reviewer grant checks, 2 reviewer workflow checks, 11 worker checks), zero failures.
+- [x] The isolated reviewer workflow using recreated hosted function definitions verified membership, decision validation, one-time review, and denial of anonymous calls after staged hardening.
+- [ ] Still required: fresh encrypted backup and restore, production-policy compatibility review, deployment-commit quality gates, explicit rollout approval. No production database migration or reviewer permission hardening has been applied by this workflow.
