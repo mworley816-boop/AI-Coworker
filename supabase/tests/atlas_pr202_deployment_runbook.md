@@ -303,3 +303,13 @@ No scheduling change is authorized by this checklist.
 - The other scheduler's configured `ATLAS_STAGING_WORKER_URL` must
   likewise be checked without disclosing its worker bearer token.
   The word `staging` alone does not guarantee database isolation.
+
+
+## Verified worker mapping and maintenance guard — 2026-11-01
+
+- [Manual authenticated mapping check #41332606767](https://github.com/mworley816-boop/AI-Coworker/actions/runs/41332606767) succeeded against the deployed staging worker and printed `atlasProjectMatch=true`. Thus the configured Supabase URL matches the **production Atlas project** `glsnhuimpzyudofpvlfq`. This supersedes the earlier *unverified* mapping statement above; it does not prove that every alternate scheduler points to the same endpoint.
+- `src/app/api/worker/run/route.ts` now reads Cloudflare runtime bindings and, after authenticating, returns `{ok:true,paused:true,processed:0,failed:0}` without running recovery or claim RPCs when `ATLAS_WORKER_MAINTENANCE_MODE` is exactly `true`.
+- The authenticated `/api/worker/status` response reports `maintenanceMode`, `running`, `queued`, `expiredLeases`, and `stalledRuns` for operator observation. A normal status response alone is **not** proof that no worker invocation is in flight.
+- This flag is **off by default** and has **not been enabled**. The flag is an admission guard, **not a database-wide lock**. All dispatch sources must be checked, and in-flight worker requests must be allowed to drain. Never infer safe drain merely from a zero `running` count: inspect leases and dispatch logs as well.
+- Added unit tests for default-off and explicit-on behavior in `src/lib/maintenance/worker-maintenance.test.ts`; CI must pass at the final commit before relying on the guard. No live paused-mode test has been performed.
+- The staging worker shares production data. Do not activate maintenance mode or apply any of the four worker migrations without separately approved maintenance operations.
