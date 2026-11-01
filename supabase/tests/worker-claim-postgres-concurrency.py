@@ -237,5 +237,68 @@ def main():
     print("PASS: five simultaneous manual/automatic claims yielded one winner each")
 
 
+    # Reassignment before claim: the new coworker assignment must be committed
+    # before a worker can acquire the run lease.
+    before_task, before_run = str(uuid.uuid4()), str(uuid.uuid4())
+    with connect() as conn:
+        conn.execute(
+            "INSERT INTO public.tasks(id,status,user_id,coworker_id) VALUES (%s,'queued',%s,%s)",
+            (before_task,USER,COWORKER_A),
+        )
+        conn.execute(
+            "INSERT INTO public.runs(id,task_id,status) VALUES (%s,%s,'queued')",
+            (before_run,before_task),
+        )
+        conn.execute("SELECT set_config('request.jwt.claim.sub',%s,false)", (USER,))
+        changed = conn.execute(
+            "SELECT public.reassign_queued_task_atomic(%s,%s)",
+            (before_task,COWORKER_B),
+        ).fetchone()[0]
+        assert changed is True, "Reassignment before claim was rejected"
+        lease = conn.execute(
+            "SELECT id FROM public.claim_run_lease(%s,%s,60)",
+            (before_run,"worker-after-reassignment"),
+        ).fetchall()
+        assert [str(row[0]) for row in lease] == [before_run], "Claim after reassignment failed"
+        assigned = conn.execute(
+            "SELECT coworker_id FROM public.tasks WHERE id=%s", (before_task,)
+        ).fetchone()[0]
+        assert str(assigned) == COWORKER_B, "Claim unexpectedly changed coworker assignment"
+        refused = conn.execute(
+            "SELECT public.reassign_queued_task_atomic(%s,%s)",
+            (before_task,COWORKER_A),
+        ).fetchone()[0]
+        assert refused is False, "Reassignment bypassed the active lease"
+    print("PASS: reassignment before claim persists, and active lease blocks later reassignment")
+
+    # Claim before reassignment: an unexpired lease must make reassignment fail.
+    after_task, after_run = str(uuid.uuid4()), str(uuid.uuid4())
+    with connect() as conn:
+        conn.execute(
+            "INSERT INTO public.tasks(id,status,user_id,coworker_id) VALUES (%s,'queued',%s,%s)",
+            (after_task,USER,COWORKER_A),
+        )
+        conn.execute(
+            "INSERT INTO public.runs(id,task_id,status) VALUES (%s,%s,'queued')",
+            (after_run,after_task),
+        )
+        lease = conn.execute(
+            "SELECT id FROM public.claim_run_lease(%s,%s,60)",
+            (after_run,"worker-before-reassignment"),
+        ).fetchall()
+        assert [str(row[0]) for row in lease] == [after_run], "Initial worker claim failed"
+        conn.execute("SELECT set_config('request.jwt.claim.sub',%s,false)", (USER,))
+        changed = conn.execute(
+            "SELECT public.reassign_queued_task_atomic(%s,%s)",
+            (after_task,COWORKER_B),
+        ).fetchone()[0]
+        assert changed is False, "Reassignment succeeded after active worker claim"
+        assigned = conn.execute(
+            "SELECT coworker_id FROM public.tasks WHERE id=%s", (after_task,)
+        ).fetchone()[0]
+        assert str(assigned) == COWORKER_A, "Rejected reassignment changed coworker"
+    print("PASS: claim before reassignment preserves coworker assignment")
+
+
 if __name__ == "__main__":
     main()
