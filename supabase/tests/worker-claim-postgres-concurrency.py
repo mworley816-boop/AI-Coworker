@@ -190,5 +190,52 @@ def main():
 
 
 
+    # Manual and automatic claims must not both acquire a fresh run lease.
+    # Both paths lock the parent task before changing the run.
+    race_task, race_run = str(uuid.uuid4()), str(uuid.uuid4())
+    with connect() as conn:
+        conn.execute("INSERT INTO public.tasks(id,status) VALUES (%s,'queued')", (race_task,))
+        conn.execute("INSERT INTO public.runs(id,task_id,status) VALUES (%s,%s,'queued')", (race_run,race_task))
+    for attempt in range(5):
+        with connect() as conn:
+            conn.execute("UPDATE public.runs SET lease_owner=NULL,lease_expires_at=NULL WHERE id=%s", (race_run,))
+        barrier = threading.Barrier(2)
+
+        def manual_racer():
+            with connect() as conn:
+                conn.execute("SET statement_timeout='5000ms'")
+                barrier.wait(timeout=10)
+                return conn.execute(
+                    "SELECT id FROM public.claim_run_lease(%s,%s,60)",
+                    (race_run,"manual-racer"),
+                ).fetchall()
+
+        def automatic_racer():
+            with connect() as conn:
+                conn.execute("SET statement_timeout='5000ms'")
+                barrier.wait(timeout=10)
+                return conn.execute(
+                    "SELECT id FROM public.claim_next_queued_run(%s,60)",
+                    ("automatic-racer",),
+                ).fetchall()
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
+            manual_future = pool.submit(manual_racer)
+            automatic_future = pool.submit(automatic_racer)
+            manual_result = manual_future.result(timeout=15)
+            automatic_result = automatic_future.result(timeout=15)
+        winners = [str(row[0]) for row in manual_result + automatic_result]
+        assert winners == [race_run], (
+            f"Manual/automatic claim collision in attempt {attempt + 1}: {winners}"
+        )
+        with connect() as conn:
+            owner = conn.execute(
+                "SELECT lease_owner FROM public.runs WHERE id=%s", (race_run,)
+            ).fetchone()[0]
+            expected_owner = "manual-racer" if manual_result else "automatic-racer"
+            assert owner == expected_owner, "Stored lease owner differs from winning claim"
+    print("PASS: five simultaneous manual/automatic claims yielded one winner each")
+
+
 if __name__ == "__main__":
     main()
