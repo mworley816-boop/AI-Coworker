@@ -5,6 +5,7 @@ on:
   pull_request:
     paths:
       - "supabase/tests/worker-claim-postgres-concurrency.py"
+      - "supabase/tests/reviewer-rpc-permission-hardening.*"
       - "supabase/migrations/2026102701000*.sql"
       - ".github/workflows/worker-claim-postgres-concurrency.yml"
 
@@ -48,5 +49,7 @@ jobs:
                   if conn.execute("SELECT 1 FROM pg_roles WHERE rolname=%s", (role,)).fetchone() is None:
                       conn.execute(f'CREATE ROLE "{role}" NOLOGIN')
           PY
+      - name: Verify reviewer RPC permission hardening SQL
+        run: node --test supabase/tests/reviewer-rpc-permission-hardening.test.mjs
       - name: Run actual concurrent PostgreSQL claims
         run: python supabase/tests/worker-claim-postgres-concurrency.py
