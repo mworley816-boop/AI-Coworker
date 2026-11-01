@@ -72,3 +72,9 @@ No migration has been applied by this runbook. Do not apply production migration
 - Hosted migration history inspected: the four `20261027010000`–`20261027010003` migrations were not listed as applied.
 - Hosted ownership policies for `tasks`, `runs`, `coworkers`, `run_steps`, and `approvals` were inspected. The synthetic RLS test does not substitute for a production-policy integration test.
 - Hosted security advisor flagged three anonymous-executable reviewer `SECURITY DEFINER` functions, six RLS-enabled tables without policies (possibly intentional service-only), and disabled leaked-password protection. Review each finding separately before changing permissions.
+
+## Hosted Atlas audit — 2026-10-31
+- [x] Read-only hosted function privilege audit: `claim_next_queued_run` is service-role-only; `claim_run_lease` allows authenticated and service_role, denies anon.
+- [x] `reassign_queued_task_atomic` is absent; four `20261027010000`–`20261027010003` worker migrations are not in hosted migration history.
+- [ ] All three privileged reviewer RPCs still permit anon EXECUTE in hosted Atlas; staged permission hardening remains unapplied. Validate complete reviewer workflow before production change.
+- [ ] Obtain fresh encrypted predeployment backup and verify restore of that fresh snapshot.
