@@ -40,6 +40,11 @@ jobs:
             echo "::error::Cloudflare cron response invalid"; exit 1;
           }
           cron=$(jq '.result.schedules | length' "$cloudflare")
+          maintenance=$(jq -r '.maintenanceMode' "$worker")
+          running=$(jq -r '.running' "$worker")
+          expired=$(jq -r '.expiredLeases' "$worker")
+          stalled=$(jq -r '.stalledRuns' "$worker")
+          blockers=0
           {
             echo "## Atlas maintenance preflight — read only"
             echo ""
@@ -47,6 +52,9 @@ jobs:
             echo "|---|---|"
             jq -r '"| Maintenance enabled | " + (.maintenanceMode|tostring) + " |", "| Queued | " + (.queued|tostring) + " |", "| Running | " + (.running|tostring) + " |", "| Expired leases | " + (.expiredLeases|tostring) + " |", "| Stalled runs | " + (.stalledRuns|tostring) + " |"' "$worker"
             echo "| Cloudflare Cron Triggers | $cron |"
+            if [ "$maintenance" != "true" ]; then echo "| Maintenance admission guard | NOT ENABLED |"; blockers=$((blockers+1)); fi
+            if [ "$running" -gt 0 ] || [ "$expired" -gt 0 ] || [ "$stalled" -gt 0 ]; then echo "| Worker activity/lease blockers | PRESENT |"; blockers=$((blockers+1)); fi
+            if [ "$cron" -gt 0 ]; then echo "| Cloudflare scheduler blocker | PRESENT |"; blockers=$((blockers+1)); fi
           } >> "$GITHUB_STEP_SUMMARY"
           for workflow in atlas-background-worker.yml atlas-staging-worker-scheduler.yml; do
             curl --fail --silent --show-error --connect-timeout 10 --max-time 30 \
@@ -56,8 +64,11 @@ jobs:
             jq -e '.workflow_runs | type == "array"' "$runs" >/dev/null
             active=$(jq '[.workflow_runs[] | select(.status != "completed")] | length' "$runs")
             echo "| GitHub $workflow active runs (latest 20) | $active |" >> "$GITHUB_STEP_SUMMARY"
+            if [ "$active" -gt 0 ]; then blockers=$((blockers+1)); fi
           done
           {
+            echo ""
+            echo "**Readiness: $([ "$blockers" -eq 0 ] && echo "No blockers in checked signals" || echo "$blockers blocker(s) in checked signals").** This is not authorization to deploy or proof of complete drain."
             echo ""
             echo "**Snapshot only.** This is not proof that HTTP requests have drained, that other dispatch sources are absent, or that backups/restores are current."
             echo "No schedulers, worker settings, database rows or migrations were changed."
