@@ -12,5 +12,5 @@ export function screenDiscoveredManufacturerUrls(house:string,urls:readonly stri
   seen.add(plan.url);
   accepted.push({url:plan.url,sourceVerified:false,manualReviewRequired:true});
  }
- return {accepted,rejected,manualReviewRequired:true as const};
+ return {accepted,rejected,manualReviewRequired:true as const, examinedCount:Math.min(urls.length,30), omittedCount:Math.max(0,urls.length-30), truncated:urls.length>30};
 }
