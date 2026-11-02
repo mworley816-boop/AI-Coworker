@@ -2,6 +2,7 @@ import {NextResponse} from "next/server";
 import {createServerSupabaseClient} from "@/lib/supabase/server";
 import {createServiceSupabaseClient} from "@/lib/supabase/service";
 import {runtimeEnv} from "@/lib/runtime-env";
+import {classifyDraftReviewReadiness} from "@/lib/research/draft-review-readiness";
 import {planPerfumeSourceRetrieval} from "@/lib/scentmarked-perfume-source-retrieval-policy";
 /** Admin-only, owner-scoped research queue. Does not fetch or publish perfumes. */
 async function authorized(request:Request){
@@ -23,7 +24,7 @@ export async function GET(request:Request){
  if("error" in auth)return NextResponse.json({ok:false,error:auth.error},{status:auth.status});
  const {data,error}=await auth.service.from("atlas_perfume_research_jobs").select("id,house,perfume_name,status,source_url,source_type,draft_payload,created_at,updated_at").eq("owner_user_id",auth.user.id).order("created_at",{ascending:false}).limit(50);
  if(error)return NextResponse.json({ok:false,error:"QUEUE_LOOKUP_FAILED"},{status:502});
- return NextResponse.json({ok:true,jobs:data??[]},{headers:{"cache-control":"no-store"}});
+ return NextResponse.json({ok:true,jobs:(data??[]).map(job=>({...job,reviewReadiness:classifyDraftReviewReadiness(job.draft_payload as Parameters<typeof classifyDraftReviewReadiness>[0])}))},{headers:{"cache-control":"no-store"}});
 }
 export async function POST(request:Request){
  const auth=await authorized(request);
