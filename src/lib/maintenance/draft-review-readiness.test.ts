@@ -12,3 +12,10 @@ test("missing evidence cannot be marked ready",()=>{
   assert.equal(classifyDraftReviewReadiness({sourceUrl:"https://example.org/item",notes:[]}).readiness,"missing_evidence");
   assert.equal(classifyDraftReviewReadiness({sourceUrl:"invalid",notes:["vanilla"]}).readiness,"missing_evidence");
 });
+
+test("optional recorded sources are counted without automatic verification",()=>{
+ const result=classifyDraftReviewReadiness({sourceUrl:"https://brand.example/item",sourceType:"manufacturer",notes:["vanilla"],evidenceSources:[{url:"https://brand.example/item",note:"vanilla"},{url:"https://retailer.example/item",note:"vanilla"}]});
+ assert.equal(result.evidence?.distinctHostCount,2);
+ assert.equal(result.readiness,"needs_verification");
+ assert.equal(result.manualReviewRequired,true);
+});
