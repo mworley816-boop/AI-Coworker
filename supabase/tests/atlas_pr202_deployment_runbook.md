@@ -324,3 +324,20 @@ The repository default branch is `main`, so GitHub scheduled workflows must be a
 - The development-branch workflow definitions are not identical to `main`. Before maintenance, verify the exact live workflow definitions and the Cloudflare dispatch sources.
 - The worker admission guard is default-off. A zero-running-run snapshot is not evidence that all in-flight HTTP worker requests have drained.
 - No scheduler, database migration, or Cloudflare maintenance setting was changed in this audit.
+
+
+## Cloudflare Cron Trigger audit — 2026-11-01
+
+The manual, read-only GitHub Actions [Cloudflare cron audit run 41378452882](https://github.com/mworley816-boop/AI-Coworker/actions/runs/41378452882) succeeded using a dedicated scoped audit token. The Cloudflare API reported **0 Cron Triggers** for the `ai-coworker-staging` Worker. This establishes that no Cloudflare Cron Trigger was configured for this Worker at the time of inspection. It does **not** exclude HTTP requests from GitHub Actions, external schedulers, or manual callers. Before a maintenance window, repeat the audit and check for other dispatch sources.
+
+**Controlled pause/resume acceptance procedure (not yet executed):**
+
+1. Confirm a fresh encrypted database backup and successful isolated restore; obtain explicit approval for any production maintenance action.
+2. Confirm all GitHub worker schedules, manual dispatches, and other known HTTP callers; plan a reversible pause for each source. Inspect recent GitHub dispatch audit and Cloudflare Cron Trigger audit.
+3. Enable the deployed worker's `ATLAS_WORKER_MAINTENANCE_MODE=true` runtime binding only during the approved window. Do not alter secrets or disable unrelated workers.
+4. Verify authenticated worker status reports `maintenanceMode=true`. Exercise a **single authorized** worker POST and confirm `paused:true`, `processed:0`, `failed:0`. The POST must not claim, recover, or finalize any work.
+5. Wait for all previously started HTTP invocations to finish; inspect GitHub run states, worker logs, database running-run and lease status. Zero running database rows alone is not enough to establish a complete drain.
+6. Only after all admission and drain checks pass, consider the four migrations in the documented order under separate deployment approval. Stop and investigate on any unexpected activity.
+7. After any approved maintenance, restore prior runtime binding and scheduler settings, verify `maintenanceMode=false`, recheck worker health, and observe one normal scheduled run. Preserve timestamps and audit evidence.
+
+This section is a **plan only**; no production pause, POST test, migration, or resume operation was performed.
