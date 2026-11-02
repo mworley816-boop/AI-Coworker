@@ -8,6 +8,8 @@ on:
     paths:
       - 'src/lib/maintenance/**'
       - 'src/lib/research/**'
+      - 'src/lib/scentmarked-perfume-research-policy.ts'
+      - 'src/lib/scentmarked-perfume-research-policy.test.ts'
       - 'src/components/PerfumeResearchDashboard.tsx'
       - 'src/app/api/scentmarked-content/research/**'
       - 'src/lib/execution/worker-admission.ts'
@@ -30,5 +32,7 @@ jobs:
       - run: npm install --no-audit --no-fund
       - name: Run isolated maintenance and research claim tests
         run: npm run test:maintenance
+      - name: Validate perfume research candidate policy
+        run: node --experimental-strip-types --test src/lib/scentmarked-perfume-research-policy.test.ts
       - name: Check TypeScript
         run: npm run typecheck
