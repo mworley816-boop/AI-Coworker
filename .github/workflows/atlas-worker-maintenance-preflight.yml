@@ -1,0 +1,65 @@
+name: Atlas worker maintenance preflight
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      WORKER_SECRET: ${{ secrets.ATLAS_WORKER_SECRET }}
+      CF_TOKEN: ${{ secrets.ATLAS_CLOUDFLARE_AUDIT_TOKEN }}
+      CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      GH_TOKEN: ${{ github.token }}
+      REPOSITORY: ${{ github.repository }}
+    steps:
+      - name: Gather read-only worker, GitHub and Cloudflare signals
+        run: |
+          set -euo pipefail
+          for name in WORKER_SECRET CF_TOKEN CF_ACCOUNT GH_TOKEN; do
+            if [ -z "${!name}" ]; then echo "::error::Required credential $name missing"; exit 1; fi
+          done
+          worker=$(mktemp)
+          cloudflare=$(mktemp)
+          runs=$(mktemp)
+          trap 'rm -f "$worker" "$cloudflare" "$runs"' EXIT
+          curl --fail --silent --show-error --connect-timeout 10 --max-time 30 \
+            -H "Authorization: Bearer $WORKER_SECRET" \
+            "https://ai-coworker-staging.m-worley816.workers.dev/api/worker/status" > "$worker"
+          jq -e '.ok == true and .atlasProjectMatch == true and (.maintenanceMode | type == "boolean") and ([.queued,.running,.expiredLeases,.stalledRuns] | all(.[]; type == "number"))' "$worker" >/dev/null || {
+            echo "::error::Worker status incomplete or unexpected project mapping"; exit 1;
+          }
+          curl --fail --silent --show-error --connect-timeout 10 --max-time 30 \
+            -H "Authorization: Bearer $CF_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT/workers/scripts/ai-coworker-staging/schedules" > "$cloudflare"
+          jq -e '.success == true and (.result.schedules | type == "array")' "$cloudflare" >/dev/null || {
+            echo "::error::Cloudflare cron response invalid"; exit 1;
+          }
+          cron=$(jq '.result.schedules | length' "$cloudflare")
+          {
+            echo "## Atlas maintenance preflight — read only"
+            echo ""
+            echo "| Signal | Value |"
+            echo "|---|---|"
+            jq -r '"| Maintenance enabled | " + (.maintenanceMode|tostring) + " |", "| Queued | " + (.queued|tostring) + " |", "| Running | " + (.running|tostring) + " |", "| Expired leases | " + (.expiredLeases|tostring) + " |", "| Stalled runs | " + (.stalledRuns|tostring) + " |"' "$worker"
+            echo "| Cloudflare Cron Triggers | $cron |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          for workflow in atlas-background-worker.yml atlas-staging-worker-scheduler.yml; do
+            curl --fail --silent --show-error --connect-timeout 10 --max-time 30 \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/$REPOSITORY/actions/workflows/$workflow/runs?per_page=20" > "$runs"
+            jq -e '.workflow_runs | type == "array"' "$runs" >/dev/null
+            active=$(jq '[.workflow_runs[] | select(.status != "completed")] | length' "$runs")
+            echo "| GitHub $workflow active runs (latest 20) | $active |" >> "$GITHUB_STEP_SUMMARY"
+          done
+          {
+            echo ""
+            echo "**Snapshot only.** This is not proof that HTTP requests have drained, that other dispatch sources are absent, or that backups/restores are current."
+            echo "No schedulers, worker settings, database rows or migrations were changed."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "Preflight read-only signals collected. See job summary."
