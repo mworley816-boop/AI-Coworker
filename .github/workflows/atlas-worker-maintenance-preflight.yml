@@ -42,7 +42,7 @@ jobs:
           cron=$(jq '.result.schedules | length' "$cloudflare")
           # Fail closed if the deployed status endpoint is reporting a stale snapshot.
           age=$(jq -r --argjson now "$(date +%s)" '
-            (.time | fromdateiso8601) as $timestamp | ($now - $timestamp)' "$worker")
+            (.time | sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601) as $timestamp | ($now - $timestamp)' "$worker")
           if [ "$age" -lt -120 ] || [ "$age" -gt 300 ]; then
             echo "::error::Worker status timestamp outside the permitted 5-minute freshness window"
             exit 1
