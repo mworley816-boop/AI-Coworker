@@ -14,3 +14,14 @@ test("rejects unsafe source URLs and unverified fields",()=>{
  assert.equal(validatePerfumeResearchCandidate({...candidate,name:" "}).ok,false);
  assert.equal(validatePerfumeResearchCandidate({...candidate,notes:[""]}).ok,false);
 });
+
+test("accepts bounded supporting source records without publishing",()=>{
+ const result=validatePerfumeResearchCandidate({...candidate,evidenceSources:[{url:"https://brand.example/product",note:"vanilla"}]});
+ assert.equal(result.ok,true);
+ if(result.ok)assert.equal(result.candidate.evidenceSources?.length,1);
+});
+test("rejects invalid supporting source URLs",()=>{
+ for(const url of ["http://example.com","https://localhost/path","https://127.0.0.1/path","https://user:pass@example.com","not-a-url"]){
+  assert.equal(validatePerfumeResearchCandidate({...candidate,evidenceSources:[{url,note:"vanilla"}]}).ok,false);
+ }
+});
