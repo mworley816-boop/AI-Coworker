@@ -18,7 +18,7 @@ export function validatePerfumeResearchCandidate(input:PerfumeResearchCandidate)
    if(!source||typeof source.url!=="string"||typeof source.note!=="string"||!source.note.trim()||source.note.length>200||source.url.length>1500)return {ok:false,reason:"INVALID_EVIDENCE_SOURCES"};
    let evidenceUrl:URL;
    try{evidenceUrl=new URL(source.url)}catch{return {ok:false,reason:"INVALID_EVIDENCE_SOURCES"}}
-   if(evidenceUrl.protocol!=="https:"||!evidenceUrl.hostname||evidenceUrl.username||evidenceUrl.password||evidenceUrl.hash)return {ok:false,reason:"INVALID_EVIDENCE_SOURCES"};
+   if(evidenceUrl.protocol!=="https:"||!evidenceUrl.hostname||evidenceUrl.username||evidenceUrl.password||evidenceUrl.hash||evidenceUrl.hostname==="localhost"||evidenceUrl.hostname.endsWith(".local")||evidenceUrl.hostname.endsWith(".internal")||evidenceUrl.hostname.split(".").every(part=>part.length>0&&part.split("").every(ch=>ch>="0"&&ch<="9")))return {ok:false,reason:"INVALID_EVIDENCE_SOURCES"};
   }
  }
  return {ok:true,candidate:{house:input.house.trim(),name:input.name.trim(),sourceUrl:url.toString(),sourceType:input.sourceType,notes:[...new Set(input.notes.map(n=>n.trim()))],...(input.evidenceSources?{evidenceSources:input.evidenceSources.map(s=>({url:new URL(s.url).toString(),note:s.note.trim()}))}:{})}};
