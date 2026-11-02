@@ -1,0 +1,19 @@
+name: Launch Atlas offline tests
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  launch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger offline tests on development branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh workflow run atlas-offline-maintenance-tests.yml --repo "$GH_REPO" --ref build/mvp-foundation
