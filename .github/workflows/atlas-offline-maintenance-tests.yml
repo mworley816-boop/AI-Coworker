@@ -8,6 +8,8 @@ on:
     paths:
       - 'src/lib/maintenance/**'
       - 'src/lib/research/**'
+      - 'src/components/PerfumeResearchDashboard.tsx'
+      - 'src/app/api/scentmarked-content/research/**'
       - 'src/lib/execution/worker-admission.ts'
       - 'src/lib/execution/worker-maintenance.ts'
       - 'src/app/api/worker/run/route.ts'
