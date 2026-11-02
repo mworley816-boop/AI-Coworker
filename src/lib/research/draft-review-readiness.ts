@@ -1,11 +1,13 @@
 import {classifyClaimReadiness,type ClaimReadiness} from "./claim-readiness.ts";
+import {summarizeSourceCorroboration,type ResearchSource} from "./source-corroboration.ts";
 import type {PerfumeResearchCandidate} from "../scentmarked-perfume-research-policy.ts";
 
 /** Advisory classification of a saved research draft; never authorizes publishing. */
-export function classifyDraftReviewReadiness(draft:Partial<PerfumeResearchCandidate>|null|undefined):{
+export function classifyDraftReviewReadiness(draft:(Partial<PerfumeResearchCandidate>&{evidenceSources?:ResearchSource[]})|null|undefined):{
   readiness:ClaimReadiness;
   manualReviewRequired:true;
   reasons:string[];
+  evidence?:ReturnType<typeof summarizeSourceCorroboration>;
 }{
   if(!draft||typeof draft.sourceUrl!=="string"||!Array.isArray(draft.notes))
     return {readiness:"missing_evidence",manualReviewRequired:true,reasons:["missing_draft_or_source"]};
@@ -19,5 +21,6 @@ export function classifyDraftReviewReadiness(draft:Partial<PerfumeResearchCandid
     corroborated:false,
     conflicting:false
   });
-  return {readiness,manualReviewRequired:true,reasons:readiness==="missing_evidence"?["missing_usable_source"]:["independent_corroboration_not_recorded"]};
+  const evidence=Array.isArray(draft.evidenceSources)?summarizeSourceCorroboration(draft.evidenceSources.filter((s):s is ResearchSource=>!!s&&typeof s.url==="string"&&typeof s.note==="string")):undefined;
+  return {readiness,manualReviewRequired:true,reasons:readiness==="missing_evidence"?["missing_usable_source"]:["independent_corroboration_not_recorded"],...(evidence?{evidence}:{})};
 }
