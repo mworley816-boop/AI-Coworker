@@ -1,4 +1,4 @@
-name: Atlas offline maintenance tests
+name: Atlas offline maintenance and research tests
 
 on:
   workflow_dispatch:
@@ -7,6 +7,7 @@ on:
       - build/mvp-foundation
     paths:
       - 'src/lib/maintenance/**'
+      - 'src/lib/research/**'
       - 'src/lib/execution/worker-admission.ts'
       - 'src/lib/execution/worker-maintenance.ts'
       - 'src/app/api/worker/run/route.ts'
@@ -25,7 +26,7 @@ jobs:
         with:
           node-version: '22'
       - run: npm install --no-audit --no-fund
-      - name: Run isolated maintenance tests
+      - name: Run isolated maintenance and research claim tests
         run: npm run test:maintenance
       - name: Check TypeScript
         run: npm run typecheck
