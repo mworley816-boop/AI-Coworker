@@ -18,3 +18,11 @@ test("rejects mismatched house and caps batch size",()=>{
  assert.equal(screenDiscoveredManufacturerUrls("Arabiyat",["https://lattafa.com/item"]).accepted.length,0);
  assert.equal(screenDiscoveredManufacturerUrls("Lattafa",Array.from({length:40},(_,i)=>"https://lattafa.com/item/"+i)).accepted.length,30);
 });
+
+test("reports omitted candidates when batch exceeds limit",()=>{
+ const result=screenDiscoveredManufacturerUrls("Lattafa",Array.from({length:40},(_,i)=>"https://lattafa.com/item/"+i));
+ assert.equal(result.examinedCount,30);
+ assert.equal(result.omittedCount,10);
+ assert.equal(result.truncated,true);
+ assert.equal(result.manualReviewRequired,true);
+});
