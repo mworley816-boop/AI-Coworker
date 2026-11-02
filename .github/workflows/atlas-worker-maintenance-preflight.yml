@@ -40,6 +40,13 @@ jobs:
             echo "::error::Cloudflare cron response invalid"; exit 1;
           }
           cron=$(jq '.result.schedules | length' "$cloudflare")
+          # Fail closed if the deployed status endpoint is reporting a stale snapshot.
+          age=$(jq -r --argjson now "$(date +%s)" '
+            (.time | fromdateiso8601) as $timestamp | ($now - $timestamp)' "$worker")
+          if [ "$age" -lt -120 ] || [ "$age" -gt 300 ]; then
+            echo "::error::Worker status timestamp outside the permitted 5-minute freshness window"
+            exit 1
+          fi
           maintenance=$(jq -r '.maintenanceMode' "$worker")
           running=$(jq -r '.running' "$worker")
           expired=$(jq -r '.expiredLeases' "$worker")
@@ -52,6 +59,7 @@ jobs:
             echo "|---|---|"
             jq -r '"| Maintenance enabled | " + (.maintenanceMode|tostring) + " |", "| Queued | " + (.queued|tostring) + " |", "| Running | " + (.running|tostring) + " |", "| Expired leases | " + (.expiredLeases|tostring) + " |", "| Stalled runs | " + (.stalledRuns|tostring) + " |"' "$worker"
             echo "| Cloudflare Cron Triggers | $cron |"
+            echo "| Worker status freshness (seconds) | $age |"
             if [ "$maintenance" != "true" ]; then echo "| Maintenance admission guard | NOT ENABLED |"; blockers=$((blockers+1)); fi
             if [ "$running" -gt 0 ] || [ "$expired" -gt 0 ] || [ "$stalled" -gt 0 ]; then echo "| Worker activity/lease blockers | PRESENT |"; blockers=$((blockers+1)); fi
             if [ "$cron" -gt 0 ]; then echo "| Cloudflare scheduler blocker | PRESENT |"; blockers=$((blockers+1)); fi
