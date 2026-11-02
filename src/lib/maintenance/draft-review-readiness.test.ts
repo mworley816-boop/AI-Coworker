@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {classifyDraftReviewReadiness} from "../research/draft-review-readiness.ts";
+import {validatePerfumeResearchCandidate} from "../scentmarked-perfume-research-policy.ts";
 
 test("single-source manufacturer draft still requires independent verification",()=>{
   assert.deepEqual(classifyDraftReviewReadiness({sourceUrl:"https://example.org/item",sourceType:"manufacturer",notes:["vanilla"]}),{
@@ -18,4 +19,15 @@ test("optional recorded sources are counted without automatic verification",()=>
  assert.equal(result.evidence?.distinctHostCount,2);
  assert.equal(result.readiness,"needs_verification");
  assert.equal(result.manualReviewRequired,true);
+});
+
+test("validated saved evidence flows into advisory review counts",()=>{
+ const saved=validatePerfumeResearchCandidate({house:"Arabiyat",name:"Sample",sourceUrl:"https://brand.example/item",sourceType:"manufacturer",notes:["vanilla"],evidenceSources:[{url:"https://brand.example/item",note:"vanilla"},{url:"https://www.brand.example/notes",note:"vanilla"},{url:"https://retailer.example/item",note:"vanilla"}]});
+ assert.equal(saved.ok,true);
+ if(!saved.ok)return;
+ const review=classifyDraftReviewReadiness(saved.candidate);
+ assert.equal(review.evidence?.validSourceCount,3);
+ assert.equal(review.evidence?.distinctHostCount,2);
+ assert.equal(review.readiness,"needs_verification");
+ assert.equal(review.manualReviewRequired,true);
 });
