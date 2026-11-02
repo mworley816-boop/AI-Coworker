@@ -17,6 +17,8 @@ export async function POST(request:Request){
     maintenanceFlag:env.ATLAS_WORKER_MAINTENANCE_MODE
   });
   if(admission)return NextResponse.json(admission.body,{status:admission.status});
+  // Admission only returns null when required configuration is present.
+  if(!url||!serviceRoleKey)return NextResponse.json({ok:false,reason:"Worker is not configured"},{status:503});
   const supabase=createClient(url,serviceRoleKey,{auth:{persistSession:false,autoRefreshToken:false}});
   const requestedBatch=Number(request.headers.get("x-worker-batch-size")??"5");
   const batchSize=Number.isFinite(requestedBatch)?Math.max(1,Math.min(Math.floor(requestedBatch),20)):5;
