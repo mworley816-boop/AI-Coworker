@@ -1,0 +1,32 @@
+name: Atlas offline maintenance tests
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - build/mvp-foundation
+    paths:
+      - 'src/lib/maintenance/**'
+      - 'src/lib/execution/worker-admission.ts'
+      - 'src/lib/execution/worker-maintenance.ts'
+      - 'src/app/api/worker/run/route.ts'
+      - '.github/workflows/atlas-offline-maintenance-tests.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  offline-validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Run isolated maintenance tests
+        run: npm run test:maintenance
+      - name: Check TypeScript
+        run: npm run typecheck
