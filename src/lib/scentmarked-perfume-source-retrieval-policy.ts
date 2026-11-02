@@ -1,4 +1,4 @@
-import {classifyPerfumeSource} from "./scentmarked-perfume-source-registry";
+import {classifyPerfumeSource} from "./scentmarked-perfume-source-registry.ts";
 /** Gate for future server-side retrieval; this module performs no network requests. */
 export function planPerfumeSourceRetrieval(house:string,rawUrl:string):
  {ok:true;url:string;maxBytes:number;redirect:"error"}|{ok:false;reason:string}{
