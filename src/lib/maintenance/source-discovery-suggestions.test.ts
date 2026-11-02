@@ -13,3 +13,7 @@ test("unknown houses and blank identities have no suggestions",()=>{
  assert.deepEqual(suggestManufacturerResearchSearches("Unknown","Sample"),[]);
  assert.deepEqual(suggestManufacturerResearchSearches("Arabiyat"," "),[]);
 });
+test("strips quote and control characters from search terms",()=>{
+ const [result]=suggestManufacturerResearchSearches("Lattafa",'Vanilla "28"\\nAmber');
+ assert.equal(result.query,'site:lattafa.com "Lattafa" "Vanilla 28 Amber"');
+});
