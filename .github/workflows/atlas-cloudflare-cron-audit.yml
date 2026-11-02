@@ -12,7 +12,7 @@ jobs:
     steps:
       - name: Inspect Cloudflare cron triggers (read only)
         env:
-          CF_TOKEN: ${{ secrets.SCENTMARKED_CLOUDFLARE_API_TOKEN }}
+          CF_TOKEN: ${{ secrets.ATLAS_CLOUDFLARE_AUDIT_TOKEN }}
           CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -euo pipefail
