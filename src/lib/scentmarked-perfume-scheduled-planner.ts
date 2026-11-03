@@ -5,9 +5,12 @@ export type ScheduledResearchPlan={ready:ScheduledResearchJob[];skipped:{id:stri
 export function planScheduledPerfumeResearch(jobs:readonly ScheduledResearchJob[],limit=3):ScheduledResearchPlan{
  const ready:ScheduledResearchJob[]=[];
  const skipped:{id:string;reason:string}[]=[];
+ const seenIds=new Set<string>();
  const max=Math.min(5,Math.max(0,Math.floor(Number.isFinite(limit)?limit:0)));
  const ordered=[...jobs].sort((a,b)=>a.created_at.localeCompare(b.created_at)||a.id.localeCompare(b.id));
  for(const job of ordered){
+  if(seenIds.has(job.id)){skipped.push({id:job.id,reason:"DUPLICATE_JOB_ID"});continue}
+  seenIds.add(job.id);
   if(job.status!=="queued"){skipped.push({id:job.id,reason:"NOT_QUEUED"});continue}
   if(!job.source_url){skipped.push({id:job.id,reason:"SOURCE_URL_REQUIRED"});continue}
   const source=planPerfumeSourceRetrieval(job.house,job.source_url);
