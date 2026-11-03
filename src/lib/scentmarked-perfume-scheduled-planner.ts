@@ -1,4 +1,4 @@
-import {planPerfumeSourceRetrieval} from "./scentmarked-perfume-source-retrieval-policy";
+import {planPerfumeSourceRetrieval} from "./scentmarked-perfume-source-retrieval-policy.ts";
 export type ScheduledResearchJob={id:string;house:string;perfume_name:string;status:string;source_url:string|null;created_at:string};
 export type ScheduledResearchPlan={ready:ScheduledResearchJob[];skipped:{id:string;reason:string}[]};
 /** Pure planning stage. No network access, job claims, or publishing. */
