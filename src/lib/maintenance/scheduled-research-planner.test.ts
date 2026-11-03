@@ -15,3 +15,10 @@ test("scheduler limits batches and orders deterministically",()=>{
  assert.equal(planScheduledPerfumeResearch(jobs,100).ready.length,3);
  assert.equal(planScheduledPerfumeResearch(jobs,0).ready.length,0);
 });
+
+test("scheduler never selects the same job ID twice",()=>{
+ const jobs=[job("same","https://lattafa.com/a"),job("same","https://lattafa.com/a"),job("other","https://lattafa.com/b")];
+ const result=planScheduledPerfumeResearch(jobs,3);
+ assert.deepEqual(result.ready.map(x=>x.id),["other","same"]);
+ assert.deepEqual(result.skipped,[{id:"same",reason:"DUPLICATE_JOB_ID"}]);
+});
