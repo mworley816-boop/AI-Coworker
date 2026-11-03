@@ -5,7 +5,7 @@ const job=(id:string,source_url:string|null,status="queued",created_at="2026-11-
 test("scheduler selects only queued allowlisted HTTPS sources",()=>{
  const result=planScheduledPerfumeResearch([job("good","https://lattafa.com/sample"),job("bad","https://example.org/sample"),job("missing",null),job("done","https://lattafa.com/sample","draft_ready")],3);
  assert.deepEqual(result.ready.map(x=>x.id),["good"]);
- assert.deepEqual(result.skipped.map(x=>x.id),["bad","missing","done"]);
+ assert.deepEqual(result.skipped.map(x=>x.id),["bad","done","missing"]);
 });
 test("scheduler limits batches and orders deterministically",()=>{
  const jobs=[job("b","https://lattafa.com/b"),job("a","https://lattafa.com/a"),job("c","https://lattafa.com/c")];
