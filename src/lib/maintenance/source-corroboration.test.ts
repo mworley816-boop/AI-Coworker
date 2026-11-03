@@ -25,3 +25,11 @@ test("repeated evidence URLs are flagged without being treated as independent co
  assert.equal(result.distinctHostCount,1);
  assert.equal(result.manualReviewRequired,true);
 });
+
+test("unique source count excludes duplicate and invalid evidence",()=>{
+ const result=summarizeSourceCorroboration([{url:"https://brand.example/item",note:"vanilla"},{url:"https://brand.example/item",note:"vanilla"},{url:"http://brand.example/item",note:"vanilla"},{url:"https://retailer.example/item",note:"vanilla"}]);
+ assert.equal(result.uniqueSourceCount,2);
+ assert.equal(result.validSourceCount,3);
+ assert.equal(result.distinctHostCount,2);
+ assert.deepEqual(result.duplicateSourceIndices,[1]);
+});
