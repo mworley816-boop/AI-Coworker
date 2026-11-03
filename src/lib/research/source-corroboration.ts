@@ -19,6 +19,7 @@ export function summarizeSourceCorroboration(sources:readonly ResearchSource[]){
   submittedSourceCount:sources.length,
   validSourceCount:sources.length-invalidSources.length,
   distinctHostCount:hosts.size,
+  uniqueSourceCount:urls.size,
   invalidSourceIndices:invalidSources,
   duplicateSourceIndices,
   hasMultipleHosts:hosts.size>=2,
