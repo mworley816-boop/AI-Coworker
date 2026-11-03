@@ -18,3 +18,10 @@ test("invalid sources do not count",()=>{
  assert.equal(result.validSourceCount,0);
  assert.deepEqual(result.invalidSourceIndices,[0,1]);
 });
+
+test("repeated evidence URLs are flagged without being treated as independent corroboration",()=>{
+ const result=summarizeSourceCorroboration([{url:"https://brand.example/item",note:"vanilla"},{url:"https://brand.example/item",note:"vanilla again"}]);
+ assert.deepEqual(result.duplicateSourceIndices,[1]);
+ assert.equal(result.distinctHostCount,1);
+ assert.equal(result.manualReviewRequired,true);
+});
