@@ -17,7 +17,7 @@ export async function POST(request:Request){
  for(const job of plan.ready){
   const owner=(data??[]).find(x=>x.id===job.id)?.owner_user_id;
   if(!owner||!job.source_url)continue;
-  const {data:claimed,error:claimError}=await service.from("atlas_perfume_research_jobs").update({status:"researching",updated_at:new Date().toISOString()}).eq("id",job.id).eq("owner_user_id",owner).eq("status","queued").select("id").maybeSingle();
+  const {data:claimed,error:claimError}=await service.from("atlas_perfume_research_jobs").update({status:"researching",updated_at:new Date().toISOString()}).eq("id",job.id).eq("owner_user_id",owner).eq("status","queued").eq("source_url",job.source_url).eq("house",job.house).eq("perfume_name",job.perfume_name).select("id").maybeSingle();
   if(claimError)return NextResponse.json({ok:false,error:"JOB_CLAIM_FAILED"},{status:502});
   if(!claimed)continue;
   let result:Awaited<ReturnType<typeof researchPerfumeSource>>;
