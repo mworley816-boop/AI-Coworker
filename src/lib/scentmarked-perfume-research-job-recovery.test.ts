@@ -5,22 +5,48 @@ import {holdStalePerfumeResearchJobs} from "./scentmarked-perfume-research-job-r
 type Row={id:string;owner_user_id:string;status:string;updated_at:string;error_code?:string};
 function mock(rows:Row[]){
  let updates=0;
- const client={from(){
-  return {
-   select(){return {eq(){return this},lt(_key:string,cutoff:string){return {...this,order(){return {limit(n:number){return Promise.resolve({data:rows.filter(r=>r.status==="researching"&&r.updated_at<cutoff).slice(0,n).map(r=>({id:r.id,owner_user_id:r.owner_user_id})),error:null})}}}}}}}},
-   update(patch:Partial<Row>){
-    updates++;
-    const filters:Record<string,string>={};
-    let cutoff="";
-    const chain={eq(key:string,value:string){filters[key]=value;return this},lt(_key:string,value:string){cutoff=value;return this},select(){return this},async maybeSingle(){
-     const row=rows.find(r=>r.id===filters.id&&r.owner_user_id===filters.owner_user_id&&r.status===filters.status&&r.updated_at<cutoff);
-     if(row)Object.assign(row,patch);
-     return {data:row?{id:row.id}:null,error:null};
-    }};
-    return chain;
-   }
-  };
- }} as unknown as SupabaseClient;
+ const client={
+  from(){
+   return {
+    select(){
+     const query={
+      eq(){return query},
+      lt(_key:string,cutoff:string){
+       return {
+        order(){
+         return {
+          limit(n:number){
+           return Promise.resolve({
+            data:rows.filter(r=>r.status==="researching"&&r.updated_at<cutoff).slice(0,n).map(r=>({id:r.id,owner_user_id:r.owner_user_id})),
+            error:null
+           });
+          }
+         };
+        }
+       };
+      }
+     };
+     return query;
+    },
+    update(patch:Partial<Row>){
+     updates++;
+     const filters:Record<string,string>={};
+     let cutoff="";
+     const query={
+      eq(key:string,value:string){filters[key]=value;return query},
+      lt(_key:string,value:string){cutoff=value;return query},
+      select(){return query},
+      async maybeSingle(){
+       const row=rows.find(r=>r.id===filters.id&&r.owner_user_id===filters.owner_user_id&&r.status===filters.status&&r.updated_at<cutoff);
+       if(row)Object.assign(row,patch);
+       return {data:row?{id:row.id}:null,error:null};
+      }
+     };
+     return query;
+    }
+   };
+  }
+ } as unknown as SupabaseClient;
  return {client,rows,updates:()=>updates};
 }
 test("invalid recovery bounds never mutate jobs",async()=>{
