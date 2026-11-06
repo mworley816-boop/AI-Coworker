@@ -1,0 +1,45 @@
+name: Atlas perfume research scheduled (opt-in)
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: atlas-perfume-research-scheduled
+  cancel-in-progress: false
+jobs:
+  research:
+    if: ${{ vars.ATLAS_PERFUME_RESEARCH_AUTOMATION_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    env:
+      ATLAS_RESEARCH_BASE_URL: ${{ vars.ATLAS_RESEARCH_BASE_URL }}
+      ATLAS_PERFUME_RESEARCH_CRON_SECRET: ${{ secrets.ATLAS_PERFUME_RESEARCH_CRON_SECRET }}
+    steps:
+      - name: Validate approved staging configuration
+        run: |
+          if [ -z "$ATLAS_PERFUME_RESEARCH_CRON_SECRET" ]; then
+            echo "::error::Missing ATLAS_PERFUME_RESEARCH_CRON_SECRET."
+            exit 1
+          fi
+          case "$ATLAS_RESEARCH_BASE_URL" in
+            "https://ai-coworker-staging.m-worley816.workers.dev"|"https://ai-coworker-staging.m-worley816.workers.dev/") ;;
+            *) echo "::error::Only the approved Atlas staging host is allowed."; exit 1 ;;
+          esac
+      - name: Recover abandoned research claims
+        run: |
+          response=$(curl --fail-with-body --silent --show-error --connect-timeout 15 --max-time 120 \
+            --request POST \
+            --header "Authorization: Bearer $ATLAS_PERFUME_RESEARCH_CRON_SECRET" \
+            "${ATLAS_RESEARCH_BASE_URL%/}/api/scentmarked-content/research/recover-stale")
+          echo "$response" | jq -e '.ok == true' >/dev/null
+          echo "$response" | jq '{ok,status,held}' >> "$GITHUB_STEP_SUMMARY"
+      - name: Research one queued perfume into an unpublished draft
+        run: |
+          response=$(curl --fail-with-body --silent --show-error --connect-timeout 15 --max-time 120 \
+            --request POST \
+            --header "Authorization: Bearer $ATLAS_PERFUME_RESEARCH_CRON_SECRET" \
+            "${ATLAS_RESEARCH_BASE_URL%/}/api/scentmarked-content/research/scheduler-run-one")
+          echo "$response" | jq -e '.ok == true and ((.executed // 0) | type == "number") and ((.executed // 0) <= 1) and (.published != true)' >/dev/null
+          echo "$response" | jq '{ok,executed,status,manualReviewRequired,published}' >> "$GITHUB_STEP_SUMMARY"
