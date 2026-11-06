@@ -31,8 +31,8 @@ jobs:
             exit 1
           fi
           case "$ATLAS_RESEARCH_BASE_URL" in
-            https://*/*|https://*) ;;
-            *) echo "::error::Research base URL must use HTTPS."; exit 1 ;;
+            "https://ai-coworker-staging.m-worley816.workers.dev"|"https://ai-coworker-staging.m-worley816.workers.dev/") ;;
+            *) echo "::error::Research endpoint must be the approved Atlas staging host."; exit 1 ;;
           esac
           case "$OPERATION" in
             preview|recover-stale|run-one) ;;
