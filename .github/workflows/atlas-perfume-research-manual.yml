@@ -1,0 +1,66 @@
+name: Atlas perfume research manual maintenance
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: "Private perfume research operation"
+        required: true
+        type: choice
+        options:
+          - preview
+          - recover-stale
+          - run-one
+      confirm_execution:
+        description: "For run-one, enter RUN_ONE_RESEARCH to authorize processing one queued job"
+        required: false
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: atlas-perfume-research-manual
+  cancel-in-progress: false
+jobs:
+  invoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    env:
+      ATLAS_RESEARCH_BASE_URL: ${{ vars.ATLAS_RESEARCH_BASE_URL }}
+      ATLAS_PERFUME_RESEARCH_CRON_SECRET: ${{ secrets.ATLAS_PERFUME_RESEARCH_CRON_SECRET }}
+      OPERATION: ${{ inputs.operation }}
+      CONFIRM_EXECUTION: ${{ inputs.confirm_execution }}
+    steps:
+      - name: Validate configuration
+        run: |
+          if [ -z "$ATLAS_RESEARCH_BASE_URL" ] || [ -z "$ATLAS_PERFUME_RESEARCH_CRON_SECRET" ]; then
+            echo "::error::Configure ATLAS_RESEARCH_BASE_URL and ATLAS_PERFUME_RESEARCH_CRON_SECRET."
+            exit 1
+          fi
+          case "$ATLAS_RESEARCH_BASE_URL" in
+            "https://ai-coworker-staging.m-worley816.workers.dev"|"https://ai-coworker-staging.m-worley816.workers.dev/") ;;
+            *) echo "::error::Research endpoint must be the approved Atlas staging host."; exit 1 ;;
+          esac
+          case "$OPERATION" in
+            preview|recover-stale) ;;
+            run-one)
+              if [ "$CONFIRM_EXECUTION" != "RUN_ONE_RESEARCH" ]; then
+                echo "::error::Explicit RUN_ONE_RESEARCH confirmation is required to execute a research job."
+                exit 1
+              fi
+              ;;
+            *) echo "::error::Unsupported operation."; exit 1 ;;
+          esac
+      - name: Invoke private research endpoint
+        run: |
+          case "$OPERATION" in
+            preview) path="scheduler-preview" ;;
+            recover-stale) path="recover-stale" ;;
+            run-one) path="scheduler-run-one" ;;
+          esac
+          response=$(curl --fail-with-body --silent --show-error --connect-timeout 15 --max-time 150 \
+            --request POST \
+            --header "Authorization: Bearer $ATLAS_PERFUME_RESEARCH_CRON_SECRET" \
+            "${ATLAS_RESEARCH_BASE_URL%/}/api/scentmarked-content/research/$path")
+          echo "$response" | jq -e '.ok == true' >/dev/null
+          echo "### Atlas perfume research maintenance" >> "$GITHUB_STEP_SUMMARY"
+          echo "Operation: $OPERATION" >> "$GITHUB_STEP_SUMMARY"
+          echo "$response" | jq '{ok,mode,executed,status,held,summary,manualReviewRequired,published}' >> "$GITHUB_STEP_SUMMARY"
