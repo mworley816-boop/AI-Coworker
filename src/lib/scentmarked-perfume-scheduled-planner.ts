@@ -12,7 +12,8 @@ export function planScheduledPerfumeResearch(jobs:readonly ScheduledResearchJob[
   if(seenIds.has(job.id)){skipped.push({id:job.id,reason:"DUPLICATE_JOB_ID"});continue}
   seenIds.add(job.id);
   if(job.status!=="queued"){skipped.push({id:job.id,reason:"NOT_QUEUED"});continue}
-  if(!job.source_url){skipped.push({id:job.id,reason:"SOURCE_URL_REQUIRED"});continue}
+  if(typeof job.house!=="string"||!job.house.trim()||typeof job.perfume_name!=="string"||!job.perfume_name.trim()){skipped.push({id:job.id,reason:"PERFUME_IDENTITY_REQUIRED"});continue}
+  if(!job.source_url||!job.source_url.trim()){skipped.push({id:job.id,reason:"SOURCE_URL_REQUIRED"});continue}
   const source=planPerfumeSourceRetrieval(job.house,job.source_url);
   if(!source.ok){skipped.push({id:job.id,reason:source.reason});continue}
   if(ready.length>=max){skipped.push({id:job.id,reason:"BATCH_LIMIT"});continue}
