@@ -64,3 +64,13 @@ jobs:
           echo "### Atlas perfume research maintenance" >> "$GITHUB_STEP_SUMMARY"
           echo "Operation: $OPERATION" >> "$GITHUB_STEP_SUMMARY"
           echo "$response" | jq '{ok,mode,executed,status,held,summary,manualReviewRequired,published}' >> "$GITHUB_STEP_SUMMARY"
+          if [ "$OPERATION" = "preview" ]; then
+            {
+              echo ""
+              echo "### Research queue details (preview only)"
+              echo 'Only queued job IDs, perfume names, houses, and skip reasons are shown; no source URLs or credentials.'
+              echo '~~~json'
+              echo "$response" | jq '{ready: [.selected[]? | {id,house,name}], skipped: [.skipped[]? | {id,house,name,perfume_name,reason}]}'
+              echo '~~~'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
