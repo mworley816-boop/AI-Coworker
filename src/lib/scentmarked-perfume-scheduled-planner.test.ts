@@ -17,3 +17,16 @@ test("enforces hard maximum and zero limit",()=>{
  assert.equal(planScheduledPerfumeResearch(jobs,100).ready.length,5);
  assert.equal(planScheduledPerfumeResearch(jobs,0).ready.length,0);
 });
+
+test("rejects missing perfume identities even with trusted sources",()=>{
+ const missingHouse={...job("a","https://lattafa.com/a"),house:""};
+ const missingName={...job("b","https://lattafa.com/b"),perfume_name:"  "};
+ const nullHouse={...job("c","https://lattafa.com/c"),house:null as unknown as string};
+ const result=planScheduledPerfumeResearch([missingHouse,missingName,nullHouse]);
+ assert.deepEqual(result.ready,[]);
+ assert.deepEqual(result.skipped.map(x=>x.reason),["PERFUME_IDENTITY_REQUIRED","PERFUME_IDENTITY_REQUIRED","PERFUME_IDENTITY_REQUIRED"]);
+});
+test("prioritizes missing identity over missing source URL",()=>{
+ const result=planScheduledPerfumeResearch([{...job("a",null),house:""}]);
+ assert.deepEqual(result.skipped,[{id:"a",reason:"PERFUME_IDENTITY_REQUIRED"}]);
+});
