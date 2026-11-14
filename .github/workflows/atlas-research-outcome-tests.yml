@@ -1,0 +1,49 @@
+name: Atlas research outcome offline checks
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/atlas-perfume-research-manual.yml'
+      - '.github/workflows/atlas-research-outcome-tests.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  classify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify research outcome reporting against offline fixtures
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          import pathlib
+          import re
+          import subprocess
+
+          workflow = pathlib.Path(".github/workflows/atlas-perfume-research-manual.yml").read_text()
+          match = re.search(r"outcome=\$\(echo \"\$response\" \| jq -r '(.*?)'\)", workflow, re.S)
+          if not match:
+              raise SystemExit("Could not locate production outcome jq filter")
+          jq_filter = match.group(1)
+          fixtures = [
+              ("held", {"ok": True, "held": True, "executed": True}),
+              ("held", {"ok": True, "manualReviewRequired": True, "executed": True}),
+              ("held", {"ok": True, "status": "held", "executed": True}),
+              ("not-executed", {"ok": True, "executed": False}),
+              ("completed", {"ok": True, "executed": True, "status": "completed"}),
+              ("unverified", {"ok": True, "executed": True, "status": "queued"}),
+              ("unverified", {"ok": True}),
+          ]
+          for expected, payload in fixtures:
+              result = subprocess.run(
+                  ["jq", "-r", jq_filter],
+                  input=json.dumps(payload),
+                  capture_output=True, text=True, check=True,
+              )
+              actual = result.stdout.strip()
+              if actual != expected:
+                  raise SystemExit(f"Expected {expected}, got {actual} for {payload}")
+          print(f"Passed {len(fixtures)} offline research outcome fixtures")
+          PY
