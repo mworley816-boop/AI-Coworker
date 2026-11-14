@@ -64,6 +64,29 @@ jobs:
           echo "### Atlas perfume research maintenance" >> "$GITHUB_STEP_SUMMARY"
           echo "Operation: $OPERATION" >> "$GITHUB_STEP_SUMMARY"
           echo "$response" | jq '{ok,mode,executed,status,held,summary,manualReviewRequired,published}' >> "$GITHUB_STEP_SUMMARY"
+          if [ "$OPERATION" = "run-one" ]; then
+            # The API's ok=true confirms the request was accepted, not that
+            # research completed. Report held/no-op distinctly from completion.
+            outcome=$(echo "$response" | jq -r '
+              if (.held == true or .manualReviewRequired == true or .status == "held") then "held"
+              elif .executed == false then "not-executed"
+              elif (.status == "completed" or .status == "succeeded" or .status == "success") then "completed"
+              else "unverified"
+              end')
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "Research outcome: $outcome" >> "$GITHUB_STEP_SUMMARY"
+            case "$outcome" in
+              held)
+                echo "::warning::Atlas held the research job for manual review. API request succeeded, but research did not complete."
+                ;;
+              not-executed)
+                echo "::notice::Atlas did not execute a research job."
+                ;;
+              unverified)
+                echo "::warning::Atlas returned ok=true without an explicit completed research status; inspect the summary."
+                ;;
+            esac
+          fi
           if [ "$OPERATION" = "preview" ]; then
             {
               echo ""
