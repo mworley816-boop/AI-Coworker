@@ -29,10 +29,12 @@ jobs:
           jq_filter = match.group(1)
           fixtures = [
               ("held", {"ok": True, "held": True, "executed": True}),
-              ("held", {"ok": True, "manualReviewRequired": True, "executed": True}),
+              ("completed", {"ok": True, "manualReviewRequired": True, "executed": 1, "status": "draft_ready"}),
               ("held", {"ok": True, "status": "held", "executed": True}),
               ("not-executed", {"ok": True, "executed": False}),
+              ("not-executed", {"ok": True, "executed": 0}),
               ("completed", {"ok": True, "executed": True, "status": "completed"}),
+              ("held", {"ok": True, "executed": 1, "status": "held", "reason": "SOURCE_FETCH_FAILED"}),
               ("unverified", {"ok": True, "executed": True, "status": "queued"}),
               ("unverified", {"ok": True}),
           ]
