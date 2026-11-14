@@ -1,0 +1,42 @@
+name: Atlas research outcome offline checks
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/atlas-perfume-research-manual.yml'
+      - '.github/workflows/atlas-research-outcome-tests.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  classify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify research outcome reporting against offline fixtures
+        shell: bash
+        run: |
+          set -euo pipefail
+          workflow=.github/workflows/atlas-perfume-research-manual.yml
+          # Read the actual jq expression used by the manual workflow.
+          filter=$(sed -n '/outcome=$(echo "\$response" | jq -r '\''/,/end'\'')/p' "$workflow" | sed -n '2,/end'\'')/p' | sed '$s/end'\'')/end/' | sed '$s/.*end'\'')/end/' )
+          if [ -z "$filter" ]; then
+            echo "::error::Unable to locate the production research outcome jq filter"
+            exit 1
+          fi
+          check() {
+            local expected="$1" payload="$2" actual
+            actual=$(printf '%s' "$payload" | jq -r "$filter")
+            if [ "$actual" != "$expected" ]; then
+              echo "::error::Expected $expected, got $actual"
+              exit 1
+            fi
+          }
+          check held '{"ok":true,"held":true,"executed":true}'
+          check held '{"ok":true,"manualReviewRequired":true,"executed":true}'
+          check held '{"ok":true,"status":"held","executed":true}'
+          check not-executed '{"ok":true,"executed":false}'
+          check completed '{"ok":true,"executed":true,"status":"completed"}'
+          check unverified '{"ok":true,"executed":true,"status":"queued"}'
+          check unverified '{"ok":true}'
+          echo "All offline research outcome fixtures passed."
