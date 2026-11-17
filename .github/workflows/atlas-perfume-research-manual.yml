@@ -68,9 +68,9 @@ jobs:
             # The API's ok=true confirms the request was accepted, not that
             # research completed. Report held/no-op distinctly from completion.
             outcome=$(echo "$response" | jq -r '
-              if (.held == true or .manualReviewRequired == true or .status == "held") then "held"
-              elif .executed == false then "not-executed"
-              elif (.status == "completed" or .status == "succeeded" or .status == "success") then "completed"
+              if (.status == "held" or .held == true) then "held"
+              elif (.executed == 0 or .executed == false) then "not-executed"
+              elif (.status == "draft_ready" or .status == "completed" or .status == "succeeded" or .status == "success") then "completed"
               else "unverified"
               end')
             echo "" >> "$GITHUB_STEP_SUMMARY"
