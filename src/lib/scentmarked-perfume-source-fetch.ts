@@ -32,6 +32,6 @@ export async function fetchPerfumeSourcePage(house:string,rawUrl:string,fetcher:
   const bytes=new Uint8Array(total);let offset=0;
   for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.byteLength}
   return {ok:true,url:plan.url,html:new TextDecoder("utf-8",{fatal:false}).decode(bytes)};
- }catch{return {ok:false,reason:"SOURCE_FETCH_FAILED"}}
+ }catch(error){return {ok:false,reason:controller.signal.aborted|| (error instanceof Error&&error.name==="AbortError")?"SOURCE_FETCH_TIMEOUT":"SOURCE_FETCH_FAILED"}}
  finally{clearTimeout(timeout)}
 }
