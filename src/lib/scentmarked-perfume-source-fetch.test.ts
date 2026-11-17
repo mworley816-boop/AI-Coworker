@@ -29,3 +29,14 @@ test("rejects invalid content-length values",async()=>{
  const fake=(async()=>new Response("small",{headers:{"content-type":"text/html","content-length":"invalid"}})) as typeof fetch;
  assert.deepEqual(await fetchPerfumeSourcePage("Lattafa","https://lattafa.com/test",fake),{ok:false,reason:"SOURCE_INVALID_LENGTH"});
 });
+
+test("distinguishes aborted fetch from network failure without leaking exception text",async()=>{
+ const aborted=(async(_url:unknown,options?:RequestInit)=>{
+  const error=new Error("private URL and token should not leak");
+  error.name="AbortError";
+  throw error;
+ }) as typeof fetch;
+ assert.deepEqual(await fetchPerfumeSourcePage("Lattafa","https://lattafa.com/test",aborted),{ok:false,reason:"SOURCE_FETCH_TIMEOUT"});
+ const network=(async()=>{throw new Error("private URL and token should not leak")}) as typeof fetch;
+ assert.deepEqual(await fetchPerfumeSourcePage("Lattafa","https://lattafa.com/test",network),{ok:false,reason:"SOURCE_FETCH_FAILED"});
+});
